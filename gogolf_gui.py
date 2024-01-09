@@ -14,7 +14,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH,SCREEN_HEIGHT))
 
 #FPS
 clock = pygame.time.Clock()
-FPS = 100
+FPS = 60
 
 pygame.display.set_caption("Go Golf")
 #icon = pygame.image.load('Assets/uno_icon.ico')
@@ -22,21 +22,140 @@ pygame.display.set_caption("Go Golf")
 pygame.key.set_repeat(0,0)
 
 #Load Images
-BACKGROUND1_IMG = pygame.image.load('bg.png').convert_alpha()
-GOLFBALL_IMG = pygame.image.load('golfball.png')
+
+GOLFBALL_IMG = pygame.image.load('Assests\golfball.png')
 
 
 #Image Widiths and Heights
-BACKGROUND1_WIDITH = BACKGROUND1_IMG.get_width()
+
 GOLFBALL_WIDITH = GOLFBALL_IMG.get_width()
 GOLFBALL_HEIGHT = GOLFBALL_IMG.get_height()
+
+
+class GoGolf():
+    def __init__(self, username):
+        self.__game_running = True
+        self.__current_player = Player(username)
+        self.__currentlevel = Level(1, 'Levels/Level1/bg.png')
+        self.__past_camera_theshold = False
+        self.__gap = 0
+        self.__muitplier = 1.5
+        self.__distance_moved = 0
+
+
+    def PlayGame(self):
+        while self.__game_running:
+            self.__currentlevel.create_background()
+            self.__current_player.get_golfball().display_ball()
+            if self.__currentlevel.get_control_backgorund():
+                self.level_controls()
+                if not self.__currentlevel.get_control_backgorund():
+                    self.set_camera_pos()
+
+            else:
+                self.player_can_shoot()
+
+
+            self.EventHandler()
+
+        
+    def EventHandler(self):
+        #Event Handler 
+        events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.QUIT:
+                LOGGER.info("Quit Application")
+                sys.exit()
+
+        pygame.display.update()
+        clock.tick(FPS)
+
+
+    def update_camera_postion(self):
+
+
+        player_ball = self.__current_player.get_golfball()
+        ball_postion = player_ball.get_postion_of_ball()
+        speed_movement = player_ball.get_x_velocityofball()//110 #120
+        self.__muitplier = 3
+        
+        if ball_postion[0] > self.__currentlevel.get_threshold_left():
+            if ball_postion[0] > self.__currentlevel.get_threshold_right() and self.__gap <= 0:
+                self.__gap = self.__currentlevel.get_threshold_right() - self.__currentlevel.get_threshold_left()
+                
+
+            #if self.__gap > 0:
+            offset_x = self.__muitplier * speed_movement
+            self.__currentlevel.update_scroll_right(offset_x)
+            player_ball.update_ball_to_right(offset_x)
+            self.__gap = self.__gap - 1
+
+
+
+    def set_camera_pos(self):
+        golfball = self.__current_player.get_golfball()
+        golfball_x_pos = golfball.get_postion_of_ball()[0]
+        offset_y = golfball.get_postion_of_ball()[1]
+
+        # Calculate the offset to center the golf ball on the screen
+        offset_x = golfball_x_pos + self.__distance_moved
+        
+        LOGGER.info(f"Offset x of camera is {offset_x} ")
+
+        # Update the background scroll to center the camera on the golf ball
+        self.__currentlevel.set_scroll_background(offset_x)
+
+        # Center the golf ball on the screen
+        golfball.set_ball_postion(SCREEN_WIDTH // 2, offset_y)
+
+
+
+     
+
+
+    def player_can_shoot(self):
+        player_ball = self.__current_player.get_golfball()
+
+        if not self.__currentlevel.get_control_backgorund():
+
+            #Stop the game reseting the shot (if not in places the ball just go in the same angle for ever)
+            if not player_ball.get_clicked():
+                player_ball.shot()
+
+            player_ball.trajecotry()
+            self.update_camera_postion()
+
+
+
+    def level_controls(self):
+        if self.__currentlevel.get_control_backgorund():
+
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_d]:
+                self.__currentlevel.update_scroll_right(5)
+                self.__current_player.get_golfball().update_ball_to_right(5)
+                self.__distance_moved -= 5
+
+            if keys[pygame.K_a]:
+                self.__currentlevel.update_scroll_left(5)
+                self.__current_player.get_golfball().update_ball_to_left(5)
+                self.__distance_moved += 5
+
+            if keys[pygame.K_RETURN]:
+                self.__currentlevel.set_control_background(False)
+        
+        
+
 
 class Player():
     def __init__(self, username):
         self.__username = username
         self.__totalstrokes = 0
         self.__totalscore = 0
-        self.__currentlevel = None
+        self.__playergolfball = Golf_Ball()
+
+    def set_currentlevel(self, level):
+        self.__currentlevel = level
 
     def get_username(self):
         return self.__username
@@ -53,12 +172,72 @@ class Player():
     def get_total_stokes(self):
         return self.__totalstrokes
 
-    
+    def get_golfball(self):
+        return self.__playergolfball
 
-    
 
+
+
+class Level():
+    def __init__(self, levelname, background):
+        self.__name_of_level = levelname
+        self.__backgroundscroll = 0
+        self.__background_img = pygame.image.load('Levels/Level1/bg.png').convert_alpha()
+        self.__backgrond_widith = self.__background_img.get_width()
+        self.__backgrond_height = self.__background_img.get_height()
+        self.__background_threshold_right= 1000
+        self.__background_threshold_left = 100
+        self.__background_threshold_middle = SCREEN_WIDTH//2
+        self.__tiles = math.ceil(SCREEN_WIDTH /  self.__backgrond_widith) + 1 #1 is a buffer
+        self.__control_background = True #If the user allowed use scroll
+
+    def get_control_backgorund(self):
+        return self.__control_background
+
+    def set_control_background(self, locked):
+        self.__control_background = locked
+
+    def update_scroll_right(self, number):
+        self.__backgroundscroll -= number
+
+    def update_scroll_left(self, number):
+        self.__backgroundscroll += number
+
+    def set_scroll_background(self, number):
+        self.__backgroundscroll = number
 
         
+
+    def draw_background(self):
+        for i in range(0, self.__tiles):
+            screen.blit(self.__background_img, (i * self.__backgrond_widith + self.__backgroundscroll, 0))
+        
+    def update_backgorund(self):
+        """Add a new tile in either vertical direction"""
+
+        #Reset Scroll (For going forward)
+        if abs(self.__backgroundscroll) > self.__backgrond_widith:
+            self.__backgroundscroll = 0
+
+        #Reset Scroll (For going backward)
+        if abs(self.__backgroundscroll) < self.__backgrond_widith and self.__backgroundscroll > 0:
+            self.__backgroundscroll = self.__backgroundscroll - self.__backgrond_widith
+
+    def create_background(self):
+        self.draw_background()
+        self.update_backgorund()
+
+    def get_threshold_right(self):
+        return self.__background_threshold_right
+
+    def get_threshold_left(self):
+        return self.__background_threshold_left
+
+    def get_threshold_middle(self):
+        return self.__background_threshold_middle
+
+
+
 
 
 class Golf_Ball():
@@ -66,7 +245,7 @@ class Golf_Ball():
         self.__GOLFBALL_image = pygame.transform.scale(GOLFBALL_IMG,(int(GOLFBALL_WIDITH*0.05), 
         int(GOLFBALL_HEIGHT*0.05)))
         self.__GOLFBALL_rect = GOLFBALL_IMG.get_rect()
-        self.__BallPostion = [298,423] #[x,y]
+        self.__BallPostion = [SCREEN_WIDTH//2,530] #[x,y]
         self.__GRAVITY = 10
         self.__BALL_MASS = 0.045
         self.__AirResistance = 0.005
@@ -80,15 +259,36 @@ class Golf_Ball():
     def set_ball_postion(self, x, y):
         self.__BallPostion = [x, y]
 
+    def update_ball_to_right(self, number):
+        self.__BallPostion[0] -=number
+
+    def update_ball_to_left(self, number):
+        self.__BallPostion[0] +=number
+
+    def get_postion_of_ball(self):
+        return self.__BallPostion
+
+    def get_ball_speed(self):
+        return self.__BallSpeed
+
+    def direction_of_golfball_x(self):
+        if self.__VelocityOfBall[0] > 0:
+            #Right
+            return 1
+        else:
+            #Left
+            return -1
+        
+
     def aim(self):
-        """Use to set the force of ball(ball speed) and the ball angle"""
+        """Use to set the force of ball (ball speed) and the ball angle"""
 
         mouse_position = pygame.mouse.get_pos()
         pygame.draw.line(screen, "#f7a42f", self.__BallPostion, mouse_position)
-
         right_click = pygame.mouse.get_pressed()
 
         if right_click[2] and self.__clicked == False:
+
             pygame.time.wait(10)
             self.__clicked = True
             LOGGER.info("Player set his aim")
@@ -100,6 +300,9 @@ class Golf_Ball():
 
             self.__BallSpeed = math.sqrt(dx**2 + dy**2) * 2
             self.__BallAngle = math.atan2(dy, dx)
+            if self.__BallSpeed > 1350:
+                self.__BallSpeed = 1350
+
             LOGGER.info(f"Ball Speed: {self.__BallSpeed} Ball Angle: {math.degrees(self.__BallAngle)}")
 
 
@@ -109,12 +312,15 @@ class Golf_Ball():
         YVelocity = -self.__BallSpeed*math.sin(self.__BallAngle)
         self.__VelocityOfBall = [XVelocity, YVelocity]
 
+    def shot(self):
+        self.aim()
+        self.swing()
+
     def get_clicked(self):
         return self.__clicked
 
-
     def trajecotry(self):
-        update_step = 0.01
+        update_step = 0.025
         print(self.__BallPostion)
 
         if self.__clicked == 1:
@@ -134,72 +340,25 @@ class Golf_Ball():
             self.__BallPostion[0] += self.__VelocityOfBall[0] *update_step
             self.__BallPostion[1] += self.__VelocityOfBall[1] *update_step
 
+
+    def get_x_velocityofball(self):
+        return self.__VelocityOfBall[0]
+
+    def get_y_velocityofball(self):
+        return self.__VelocityOfBall[1]
+
+
     
     def display_ball(self):
         screen.blit(self.__GOLFBALL_image, (int(self.__BallPostion[0]), int(self.__BallPostion[1])))
+
+
+
         
         
 
 def gameloop():
-    #DEF GAME VARIABLES
-    tiles = math.ceil(SCREEN_WIDTH / BACKGROUND1_WIDITH) + 1 #1 is a buffer
-    UserControlOfScrollLocked = False #If the user allowed use scroll
-    scroll = 0 #Intial Scroll Postion
-    ball = Golf_Ball()
-
-
-    while True:
+    game = GoGolf("Erol")
+    game.PlayGame()
         
-        #DRAW BACKGROUND
-        for i in range(0, tiles):
-            screen.blit(BACKGROUND1_IMG, (i * BACKGROUND1_WIDITH + scroll, 0))
-        
-        #scroll background
 
-
-        #Reset Scroll (For going forward)
-        if abs(scroll) > BACKGROUND1_WIDITH:
-            scroll = 0
-
-        #Reset Scroll (For going backward)
-        if abs(scroll) < BACKGROUND1_WIDITH and scroll > 0:
-            scroll = scroll - BACKGROUND1_WIDITH
-
-
-        #Start of game
-        if UserControlOfScrollLocked == False:
-
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_d]:
-                scroll -= 5
-
-            if keys[pygame.K_a]:
-                scroll += 5
-
-        else:
-            ball.display_ball()
-
-            #Stop the game reseting the shot (if not in places the ball just go in the same angle for ever)
-            if not ball.get_clicked():
-                ball.aim()
-                ball.swing()
-            ball.trajecotry()
-
-        #Event Handler 
-        events = pygame.event.get()
-        for event in events:
-            if event.type == pygame.QUIT:
-                LOGGER.info("Quit Application")
-                sys.exit()
-
-            if event.type == pygame.KEYDOWN:
-
-                if event.key == pygame.K_RETURN:
-                    UserControlOfScrollLocked = True
-                    #Return user start of the level
-
-
-                
-
-        pygame.display.update()
-        clock.tick(FPS)
