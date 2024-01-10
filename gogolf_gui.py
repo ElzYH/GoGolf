@@ -95,18 +95,26 @@ class GoGolf():
     def set_camera_pos(self):
         golfball = self.__current_player.get_golfball()
         golfball_x_pos = golfball.get_postion_of_ball()[0]
-        offset_y = golfball.get_postion_of_ball()[1]
+
+        LOGGER.info(f"golfball x pos before {golfball_x_pos} ")
+        LOGGER.info(f"Scroll Before {self.__currentlevel.get_scroll_background()}")
 
         # Calculate the offset to center the golf ball on the screen
-        offset_x = golfball_x_pos + self.__distance_moved
-        
+        offset_x = self.__distance_moved + (golfball_x_pos - SCREEN_WIDTH // 2)
+        offset_y = golfball.get_postion_of_ball()[1]
+
+        LOGGER.info(f"Distance camera from ball x of camera is {self.__distance_moved} ")
         LOGGER.info(f"Offset x of camera is {offset_x} ")
 
         # Update the background scroll to center the camera on the golf ball
-        self.__currentlevel.set_scroll_background(offset_x)
+        if not self.__distance_moved == 0:
+            self.__currentlevel.set_scroll_background(offset_x)
 
         # Center the golf ball on the screen
         golfball.set_ball_postion(SCREEN_WIDTH // 2, offset_y)
+        LOGGER.info(f"golfball x pos after {golfball_x_pos} ")
+        LOGGER.info(f"Scroll after {self.__currentlevel.get_scroll_background()}")
+
 
 
 
@@ -134,12 +142,12 @@ class GoGolf():
             if keys[pygame.K_d]:
                 self.__currentlevel.update_scroll_right(5)
                 self.__current_player.get_golfball().update_ball_to_right(5)
-                self.__distance_moved -= 5
+                self.__distance_moved += 5
 
             if keys[pygame.K_a]:
                 self.__currentlevel.update_scroll_left(5)
                 self.__current_player.get_golfball().update_ball_to_left(5)
-                self.__distance_moved += 5
+                self.__distance_moved -= 5
 
             if keys[pygame.K_RETURN]:
                 self.__currentlevel.set_control_background(False)
@@ -206,7 +214,8 @@ class Level():
     def set_scroll_background(self, number):
         self.__backgroundscroll = number
 
-        
+    def get_scroll_background(self):
+        return self.__backgroundscroll
 
     def draw_background(self):
         for i in range(0, self.__tiles):
@@ -245,7 +254,7 @@ class Golf_Ball():
         self.__GOLFBALL_image = pygame.transform.scale(GOLFBALL_IMG,(int(GOLFBALL_WIDITH*0.05), 
         int(GOLFBALL_HEIGHT*0.05)))
         self.__GOLFBALL_rect = GOLFBALL_IMG.get_rect()
-        self.__BallPostion = [SCREEN_WIDTH//2,530] #[x,y]
+        self.__BallPostion = [SCREEN_WIDTH//2, 530] #[x,y]
         self.__GRAVITY = 10
         self.__BALL_MASS = 0.045
         self.__AirResistance = 0.005
