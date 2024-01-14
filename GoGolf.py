@@ -4,7 +4,7 @@ from Logger import *
 
 
 #Checks if all that needed on application side to start the application
-starting_check()
+starting_check("GoGolf")
 
 #Get name of current file being used
 LOGGER = logging.getLogger(f"{__name__}")

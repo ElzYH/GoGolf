@@ -13,7 +13,7 @@ pygame.init()
 
 # Logger
 LOGGER = logging.getLogger(f"{__name__}")
-starting_check()
+starting_check("Level_Editor")
 
 # Game window
 SCREEN_HEIGHT = 768 
@@ -28,14 +28,14 @@ TILE_SIZE = SCREEN_HEIGHT // ROWS
 TILE_TYPES = 21
 
 #FPS
-FPS = 200
+FPS = 60
 clock = pygame.time.Clock()
 
 #Colours
 BLUE = "#2596be"
 WHITE = "#F5FEFD"
 
-pygame.key.set_repeat(5, 5)
+pygame.key.set_repeat(0, 0)
 screen = pygame.display.set_mode(((SCREEN_WIDTH + SIDE_MARGIN), (SCREEN_HEIGHT + LOWER_MARGIN)))
 pygame.display.set_caption("GoGolf Level Editor")
 
@@ -69,10 +69,14 @@ class LevelEditor():
         self.__speed_muiltplier = 1
         self.__scroll_left = False
         self.__scroll_right = False
+        self.__pause = False
+        self.__confirm = True
+        self.__total_scroll = 0 
 
 
     def __UpdateSpeedMuilplier(self, keys):
         if keys[pygame.K_LSHIFT]:
+            LOGGER.info('Spped Muiltplied')
             self.__speed_muiltplier = 5
         else:
             self.__speed_muiltplier = 1
@@ -81,17 +85,18 @@ class LevelEditor():
     def LevelControls(self, keys):
         # Modify background_scroll based on user input or scrolling mechanism
         # For example, you can use the arrow keys:
-        
-        scroll = self.__current_level.Get_TotalScroll()
+
         scroll_speed = 5*self.__speed_muiltplier
-        if keys[pygame.K_LEFT]:
-            if not scroll > (2*TILE_SIZE):
+        if keys[pygame.K_a]:
+            if not self.__total_scroll > (2*TILE_SIZE):
                 self.__current_level._UpdateScrollLeft(scroll_speed)
+                self.__total_scroll += scroll_speed 
                 
 
-        if keys[pygame.K_RIGHT]:
-            if abs(scroll) < (MAX_COLS*TILE_SIZE) - SCREEN_WIDTH:
+        if keys[pygame.K_d]:
+            if abs(self.__total_scroll) < (MAX_COLS*TILE_SIZE) - SCREEN_WIDTH:
                 self.__current_level._UpdateScrollRight(scroll_speed)
+                self.__total_scroll -= scroll_speed 
 
 
     def __DisplayLevelInfomation(self):
@@ -106,8 +111,8 @@ class LevelEditor():
 
     def __DrawEditor(self):
         self.__current_level._DrawBackground()
-        self.__current_level._DrawWorld()
-        self.__current_level._DrawGrid()
+        self._DrawWorld()
+        self._DrawGrid()
         pygame.draw.rect(screen, BLUE, (SCREEN_WIDTH, 0, SIDE_MARGIN, SCREEN_HEIGHT))
 
 
@@ -118,39 +123,50 @@ class LevelEditor():
                 LOGGER.info("Quit Application")
                 sys.exit()
 
+            #Addiotnal Level Controls
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_e:
-                    self.__current_level.UpdateSelectedLevel(1)
-                if event.key == pygame.K_q:  
-                    if not self.__current_level.Get_Level() <= 1: 
-                        self.__current_level.UpdateSelectedLevel(-1)
+                if not self.__pause:
+                    self.__ChangeLevel(event)
+                    LOGGER.info(f'Level changed to {self.__current_level.Get_Level()}')
+                
+                #Confirms if editor wants to save
+                else:
+                    if event.key == pygame.K_RETURN:
+                        self.__confirm = True
+                        self.__pause = False
+                        LOGGER.info('Confirmed')
+
+                    elif event.type == pygame.KEYDOWN and not event.key == pygame.K_RETURN:
+                        self.__pause = False
+                        LOGGER.info('Unconfirmed')
+
+                    LOGGER.info('Editor Resumed')
+
+
 
         pygame.display.update()
         clock.tick(FPS)
 
-        #self.__ChangeLevel(event)
+        
     
             
         
 
     def __ChangeLevel(self, event):
-        pass
-        # if event.type == pygame.KEYDOWN:
-        #     if event.key == pygame.K_e:
-        #         self.__current_level.UpdateSelectedLevel(1)
-        #     if event.key == pygame.K_q:  
-        #         if not self.__current_level.Get_Level() <= 1: 
-        #             self.__current_level.UpdateSelectedLevel(-1)
+        if event.key == pygame.K_e and not self.__current_level.Get_Level() >= 5:
+            self.__current_level.UpdateSelectedLevel(1)
+        if event.key == pygame.K_q:  
+            if not self.__current_level.Get_Level() <= 1: 
+                self.__current_level.UpdateSelectedLevel(-1)
 
     
     def Editor(self):
-        #self.__current_level._Level__SetupTileButtons()
+        LOGGER.info('In editor loop')
         
         while self.__editor_running:
             keys = pygame.key.get_pressed()
             self.__UpdateSpeedMuilplier(keys)
             self.LevelControls(keys)
-            self.__EventHandler()
             
             self.__DrawEditor()
             
@@ -159,19 +175,18 @@ class LevelEditor():
             pygame.draw.rect(screen, WHITE, button_list[self.__current_level.Get_ButtonTileCount()].rect, 3)
 
             self.__DisplayLevelInfomation()
-            self.__current_level.EditorControls()
+            self.EditorControls()
 
 
             if self.__save_button.draw():
-                self.__current_level.SaveWorld()
+                self.SaveWorld()
 
             if self.__load_button.draw():
-                self.__current_level.LoadWorld()
+                self.LoadWorld()
 
             self.__EventHandler()
 
                 
-
 
     def _DrawTileButtons(self, button_list):
         #Tile buttons
@@ -179,6 +194,85 @@ class LevelEditor():
         for i in range(0, TILE_TYPES):
             if button_list[i].draw():
                 self.__current_level.set_button_count(i)
+                LOGGER.info(f'Selected tile {button_list[i]}')
+                break
+
+
+    def _DrawGrid(self):
+        # Vertical lines
+        for c in range(-2 ,MAX_COLS + 1):
+            pygame.draw.line(screen, WHITE, (c * TILE_SIZE +  self.__total_scroll, 0), (c * TILE_SIZE +  self.__total_scroll, SCREEN_HEIGHT))
+
+        # Horizontal lines
+        for c in range(ROWS + 1):
+            pygame.draw.line(screen, WHITE, (0, c * TILE_SIZE), (SCREEN_WIDTH, c * TILE_SIZE))
+
+    #Function for drrawing the world tiles dictionary #EEE
+    def _DrawWorld(self):
+        for y, row in enumerate(self.__current_level.Get_WorldData()):
+            for x, tile in enumerate(row):
+                if tile >= 0: 
+                    screen.blit(self.__current_level.Get_TileList()[tile], (x * TILE_SIZE + self.__total_scroll, y *TILE_SIZE))
+
+
+    def EditorControls(self):
+        pos = pygame.mouse.get_pos()
+        x = (pos[0] - self.__total_scroll) // TILE_SIZE
+        y = pos[1] // TILE_SIZE
+
+        #check if cordiantes are in tile area sp mouse clicks are only recorded in game area
+        if pos[0] < SCREEN_WIDTH and pos[1] < SCREEN_HEIGHT:
+            self.__current_level._AddTiles(x,y)
+
+            if pygame.mouse.get_pressed()[0] == 1:
+                self.__current_level._RemoveTiles(x,y)
+
+
+    def PasueEditor(self, select):
+        self.__pause = True
+        LOGGER.info("Game Paused")
+        while self.__pause:
+            self.__DrawEditor()
+            text = Text()
+            text.set_all(f"PRESS RETURN TO CONFIRM {select} LEVEL {self.__current_level.Get_Level()}", "Red", WII_FONT, 50, SCREEN_WIDTH//2 - SIDE_MARGIN, SCREEN_HEIGHT//2)
+            text.draw_text()
+            self.__EventHandler()
+        LOGGER.info("Game Resumed")
+
+    
+
+    def SaveWorld(self):
+        self.PasueEditor("SAVE")
+        LOGGER.info("Save Game")
+        if self.__confirm:
+            self.__confirm = False
+            pickle_out = open(f'Levels/level{self.__current_level.Get_Level()}_data', 'wb')
+            pickle.dump(self.__current_level.Get_WorldData(), pickle_out)
+            pickle_out.close()
+            LOGGER.info(f"Level {self.__current_level.Get_Level()} has been saved ")
+
+
+    def LoadWorld(self):
+        self.PasueEditor("LOAD")
+        LOGGER.info("Save Level")
+        if self.__confirm:
+            self.__confirm = False
+            try:
+                pickle_in = open(f'Levels/level{self.__current_level.Get_Level()}_data', 'rb')
+                self.__total_scroll = 0
+                self.__background_scroll = 0
+                self.__current_level.Set_WorldData([])
+                self.__current_level.Set_WorldData(pickle.load(pickle_in))
+                LOGGER.info(f"Level {self.__current_level.Get_Level()} has been loaded ")
+            except FileNotFoundError:
+                LOGGER.info(f"Level {self.__current_level.Get_Level()} does not exist ")
+                text = Text()
+                text.set_all(f"LEVEL {self.__current_level.Get_Level()} DOES NOT EXIST", "Red", WII_FONT, 50, SCREEN_WIDTH//2 - SIDE_MARGIN + 100, SCREEN_HEIGHT//2)
+                self.__DrawEditor()
+                text.draw_text()
+                self.__EventHandler()
+                pygame.time.wait(1000)
+            
             
 
 
@@ -189,17 +283,17 @@ class Level():
     def __init__(self):
         self.__level_background_img = pygame.image.load('Levels/Level1/bg.png').convert_alpha()
         self.__tiles_background = math.ceil((SCREEN_WIDTH - SIDE_MARGIN) / self.__level_background_img.get_width()) + 1
-        self.__background_widith = background_img.get_width()
-        self.__background_scroll = 0
-        self.__total_scroll = 0 
         self.__world_data = self.__CreateBlankWorld()
         self.__tile_list = self.__CreateTileList()
-        self.__level = 0
+        self.__background_widith = background_img.get_width()
+        self.__background_scroll = 0
+        self.__level = 1
         self.__button_tile_list = self.__SetupTileButtons()
         self.__button_tile_count = 0
 
         
     def __SetupTileButtons(self):
+        LOGGER.info("Setup Tile Buttons")
         # Make button list
         button_tile_list = []
         button_tile_col = 0
@@ -220,6 +314,7 @@ class Level():
 
 
     def __CreateTileList(self):
+        LOGGER.info("Create List Of Image Tiles")
         tile_list = []
         for x in range(TILE_TYPES):
             img = pygame.image.load(os.path.join(current_directory, 'Assests', 'tile',f'{x}.png')) 
@@ -230,6 +325,7 @@ class Level():
 
 
     def __CreateBlankWorld(self):
+        LOGGER.info("Blank world generated")
         #Create emptylist 2d array
         world_data = [[-1] * 150 for _ in range(16)]
         
@@ -251,33 +347,24 @@ class Level():
             
 
 
-    def __AddTiles(self, x, y):
+    def _AddTiles(self, x, y):
         if pygame.mouse.get_pressed()[2] == 1:
             if self.__world_data[y][x] != self.__button_tile_count:
+                LOGGER.info(f"Tile {self.__button_tile_count} Added in {x},{y} ")
                 self.__world_data[y][x] = self.__button_tile_count
 
-    def __RemoveTiles(self, x, y):
+    def _RemoveTiles(self, x, y):
         self.__world_data[y][x] = -1
+        LOGGER.info(f"Tile removed in {x},{y} ")
 
 
     def _UpdateScrollRight(self, value):
         self.__background_scroll -= value 
-        self.__total_scroll -= value 
 
     def _UpdateScrollLeft(self, value):
         self.__background_scroll += value 
-        self.__total_scroll += value 
 
 
-
-    def _DrawGrid(self):
-        # Vertical lines
-        for c in range(-2 ,MAX_COLS + 1):
-            pygame.draw.line(screen, WHITE, (c * TILE_SIZE +  self.__total_scroll, 0), (c * TILE_SIZE +  self.__total_scroll, SCREEN_HEIGHT))
-
-        # Horizontal lines
-        for c in range(ROWS + 1):
-            pygame.draw.line(screen, WHITE, (0, c * TILE_SIZE), (SCREEN_WIDTH, c * TILE_SIZE))
 
 
     #Draw background
@@ -290,40 +377,17 @@ class Level():
         self.__ResetBackgroundScroll()
 
 
+    def Get_CurrentLevel(self):
+        return self.__level
 
-    #Function for drrawing the world tiles dictionary
-    def _DrawWorld(self):
-        for y, row in enumerate(self.__world_data):
-            for x, tile in enumerate(row):
-                if tile >= 0: 
-                    screen.blit(self.__tile_list[tile], (x * TILE_SIZE + self.__total_scroll, y *TILE_SIZE))
+    def Set_CurrentLevel(self, value):
+        self.__level = value
 
+    def Get_WorldData(self):
+        return self.__world_data
 
-    def EditorControls(self):
-        pos = pygame.mouse.get_pos()
-        x = (pos[0] - self.__total_scroll) // TILE_SIZE
-        y = pos[1] // TILE_SIZE
-
-        #check if cordiantes are in tile area sp mouse clicks are only recorded in game area
-        if pos[0] < SCREEN_WIDTH and pos[1] < SCREEN_HEIGHT:
-            self.__AddTiles(x,y)
-
-            if pygame.mouse.get_pressed()[0] == 1:
-                self.__RemoveTiles(x,y)
-
-
-    def SaveWorld(self):
-        pickle_out = open(f'Levels/level{self.__level}_data', 'wb')
-        pickle.dump(self.__world_data, pickle_out)
-        pickle_out.close()
-
-
-    def LoadWorld(self):
-        self.__total_scroll = 0
-        self.__background_scroll = 0
-        self.__world_data = []
-        pickle_in = open(f'Levels/level{self.__level}_data', 'rb')
-        self.__world_data = pickle.load(pickle_in)
+    def Set_WorldData(self, value):
+        self.__world_data = value
     
     def Get_TotalScroll(self):
         return self.__total_scroll
@@ -454,7 +518,8 @@ class Text:
 
 
 if __name__ == "__main__":
-    LOGGER.info('Hello')
+    LOGGER.info('Application Started')
     level_editor = LevelEditor()
+    LOGGER.info('LevelEditor object create')
     level_editor.Editor()
     
