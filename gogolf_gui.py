@@ -23,7 +23,7 @@ pygame.key.set_repeat(0,0)
 
 #Load Images
 
-GOLFBALL_IMG = pygame.image.load('Assests\golfball.png')
+GOLFBALL_IMG = pygame.image.load('Assests/20.png')
 
 
 #Image Widiths and Heights
@@ -251,8 +251,8 @@ class Level():
 
 class Golf_Ball():
     def __init__(self):
-        self.__GOLFBALL_image = pygame.transform.scale(GOLFBALL_IMG,(int(GOLFBALL_WIDITH*0.05), 
-        int(GOLFBALL_HEIGHT*0.05)))
+        self.__GOLFBALL_image = pygame.transform.scale(GOLFBALL_IMG,(int(GOLFBALL_WIDITH*1.5), 
+        int(GOLFBALL_HEIGHT*1.5)))
         self.__GOLFBALL_rect = GOLFBALL_IMG.get_rect()
         self.__BallPostion = [SCREEN_WIDTH//2, 530] #[x,y]
         self.__GRAVITY = 10
@@ -309,8 +309,8 @@ class Golf_Ball():
 
             self.__BallSpeed = math.sqrt(dx**2 + dy**2) * 2
             self.__BallAngle = math.atan2(dy, dx)
-            if self.__BallSpeed > 1350:
-                self.__BallSpeed = 1350
+            if self.__BallSpeed > 1200:
+                self.__BallSpeed = 1200
 
             LOGGER.info(f"Ball Speed: {self.__BallSpeed} Ball Angle: {math.degrees(self.__BallAngle)}")
 
