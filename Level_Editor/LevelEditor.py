@@ -44,7 +44,7 @@ pygame.display.set_caption("GoGolf Level Editor")
 current_directory = os.getcwd()
 print(current_directory)
 
-background_img = pygame.image.load('Levels/Level1/bg.png').convert_alpha()
+background_img = pygame.image.load('bg.png').convert_alpha()
 save_img = pygame.image.load(os.path.join(current_directory, 'Assests','save.png')).convert_alpha()
 load_img = pygame.image.load(os.path.join(current_directory, 'Assests','load.png')) .convert_alpha()
 
@@ -281,7 +281,7 @@ class LevelEditor():
 
 class Level():
     def __init__(self):
-        self.__level_background_img = pygame.image.load('Levels/Level1/bg.png').convert_alpha()
+        self.__level_background_img = pygame.image.load('bg.png').convert_alpha()
         self.__tiles_background = math.ceil((SCREEN_WIDTH - SIDE_MARGIN) / self.__level_background_img.get_width()) + 1
         self.__world_data = self.__CreateBlankWorld()
         self.__tile_list = self.__CreateTileList()
