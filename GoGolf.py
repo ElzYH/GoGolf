@@ -1,5 +1,6 @@
 import gogolf_gui
 from pygame.locals import *
+
 from Logger import *
 
 
@@ -15,6 +16,7 @@ LOGGER.info(f'Application started')
 if __name__ == "__main__":
     LOGGER.info('Hello')
     gogolf_gui.gameloop()
+
 
 
 
