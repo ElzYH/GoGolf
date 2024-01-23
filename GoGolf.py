@@ -1,6 +1,5 @@
 import gogolf_gui
 from pygame.locals import *
-
 from Logger import *
 
 
