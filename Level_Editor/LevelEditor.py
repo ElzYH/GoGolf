@@ -51,13 +51,6 @@ load_img = pygame.image.load(os.path.join(current_directory, 'Assests','load.png
 #Fonts
 WII_FONT = os.path.join(current_directory,"Assets", "Fonts", "AOTFShinGoProMedium.otf")
 
-# #Tiles
-# tile_list = []
-# for x in range(TILE_TYPES):
-#     img = pygame.image.load(os.path.join(current_directory, 'Assests', 'tile',f'{x}.png')) 
-#     img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
-#     tile_list.append(img)
-
 
 
 class LevelEditor():
@@ -435,13 +428,28 @@ class Button():
         self.clicked = False
 
     def brighten_image(self):
-        #Convets iamge to numpy array
-        pixel = pygame.surfarray.array3d(self.image)
-        #Apply brightness
-        pixel = numpy.clip(pixel * 1.5, 0, 255)
-        #convert back
-        image_hi = pygame.surfarray.make_surface(pixel)
-        return image_hi
+        # Convert image to a copy
+        image_copy = self.image.copy()
+        brightness_factor = 1.5
+
+        # Iterate through pixels
+        for x in range(image_copy.get_width()):
+            for y in range(image_copy.get_height()):
+                # Get the color of the pixel
+                color = image_copy.get_at((x, y))
+
+                # Brighten RGB channels while leaving alpha channel unchanged
+                new_color = (
+                    min(int(color.r * brightness_factor), 255),
+                    min(int(color.g * brightness_factor), 255),
+                    min(int(color.b * brightness_factor), 255),
+                    color.a
+                )
+
+                # Set the new color to the pixel
+                image_copy.set_at((x, y), new_color)
+
+        return image_copy
 
 
     def draw(self):
