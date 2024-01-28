@@ -5,6 +5,7 @@ import gogolf_gui
 import gogolf_lilbray
 import sys
 import pygame_textinput
+import sqlite3
 
 pygame.init()
 
@@ -39,6 +40,7 @@ BLUE = "#2596be"
 WHITE = "#F5FEFD"
 ORANGE = "#ff8500"
 BLACK = "#000000"
+RED = "#D21404"
 
 bg_w = background_1.get_width()
 bg_h = background_1.get_height()
@@ -158,6 +160,8 @@ class User():
         self.__password_text = gogolf_lilbray.Enter_Text(SCREEN_WIDTH//2- 45, SCREEN_HEIGHT//2, "cambria", 22, True, self.__manager)
         self.__section = "user"
         self.__display_username = gogolf_lilbray.Text()
+        self.__error = ""
+        self.__display_error = gogolf_lilbray.Text()
 
     def __buttons(self, events):
         if self.__login.draw(screen):
@@ -165,10 +169,10 @@ class User():
             self.__password_text.clear_text()
             self.__menu_choice = "login"
 
-
         if self.__sign_up.draw(screen):
             self.__username_text.clear_text()
             self.__menu_choice = "sign_up"
+
 
     def __user_password(self, events):
         pygame.draw.rect(screen, WHITE, (SCREEN_WIDTH//2- 50, SCREEN_HEIGHT//2 - 50, 300, 40))
@@ -187,10 +191,9 @@ class User():
         self.__username_text.enter(events)
 
         if not self.__username_text.access() == "":
-            self.__username = self.__username_text.access()
+            self.__username = self.__username_text.access().lower()
             self.__section = "pass"
             self.__username_text.clear_text()
-            print("heuy")
             self.__display_username.set_all(self.__username, BLACK, P2 , 22, SCREEN_WIDTH//2- 45, SCREEN_HEIGHT//2- 40)
 
 
@@ -207,8 +210,10 @@ class User():
             if self.__menu_choice == "login":
                 self.__menu_choice = "game"
 
+            if self.__menu_choice == "sign_up":
+                self.__menu_choice = "creation"
 
-        
+
 
     def __login_into_account(self, events):
         self.__go_back()
@@ -217,6 +222,39 @@ class User():
     def __create_account(self, events):
         self.__go_back()
         self.__user_password(events)
+
+        
+
+    def __account_maker(self):
+        conn = sqlite3.connect("database/GoGolfDB.db")
+        c = conn.cursor()
+        self.__username = self.__username .replace(" ", "_")
+        for i in range(len(self.__password)):
+            if self.__password[i] == " ":
+                self.__error = "Password cannot contain spaces"
+                self.__menu_choice = ""
+                return
+        try:
+            username_sql = c.execute(f'SELECT Username FROM UserRegister WHERE Username IS "{self.__username}"')
+            username_sql = str("".join(c.fetchone()))
+        except TypeError: 
+            pass #Username not in the database
+
+        if username_sql == self.__username: 
+            self.__error = "Username taken"
+
+        elif self.__username == "": 
+            self.__error = "Username was blank"
+
+        else:
+            c.execute(f"INSERT INTO UserRegister (Username, Password) VALUES ('{self.__username.lower()}', '{self.__password}')")
+        
+        self.__clear_info()
+        conn.commit()
+        conn.close()
+        self.__menu_choice = ""
+
+
 
     def __go_back(self):
         if self.__back.draw(screen):
@@ -228,6 +266,9 @@ class User():
             self.__bg.draw_background()
             events = pygame.event.get()
 
+            self.__display_error.set_all(self.__error, RED, P2, 30, 30, 30 )
+            self.__display_error.draw_text(screen)
+
             if self.__menu_choice == "":
                 self.__buttons(events)
 
@@ -237,10 +278,58 @@ class User():
             if self.__menu_choice == "sign_up":
                 self.__create_account(events)
 
+            if self.__menu_choice == "creation":
+                self.__account_maker()
+
             if self.__menu_choice == "game":
-                return self.__username
+                if self.__if_account_exist():
+                    return self.__username
+                else:
+                    self.__menu_choice = ""
             self.EventHandler(events)
 
+
+
+    def __if_username_exist(self, conn):
+        c = conn.cursor()
+        username_sql = c.execute(f'SELECT Username FROM UserRegister WHERE Username IS "{self.__username}"')
+        
+        try:
+            username_sql =  str("".join(c.fetchone())).lower()
+        except TypeError:
+            self.__clear_info()
+            self.__error = "username does not exist"
+            conn.close()
+        return username_sql
+
+
+
+    def __if_account_exist(self):
+        conn = sqlite3.connect("database/GoGolfDB.db")
+        c = conn.cursor()
+        username_sql = self.__if_username_exist(conn)
+
+        if username_sql == self.__username:
+            password_sql = c.execute(f'SELECT Password FROM UserRegister WHERE Username IS "{self.__username}"')
+            try:
+                password_sql =  str("".join(c.fetchone())).lower()
+            except TypeError:
+                pass
+            if password_sql == self.__password:
+                conn.close()
+                return True
+            else:
+                self.__clear_info()
+                conn.close()
+        self.__error = "username/password is not correct"
+        conn.close()     
+        return False
+
+    
+    def __clear_info(self):
+        self.__username = ""
+        self.__password = ""
+            
 
     def EventHandler(self, events):
         for event in events:
@@ -265,17 +354,17 @@ class MainMenu():
         self.__three_hole = gogolf_lilbray.Button(50, 50, three_hole_button, 0.5)
         self.__five_hole = gogolf_lilbray.Button(50, 200, five_hole_button, 0.5)
         self.__back = gogolf_lilbray.Button(50, SCREEN_HEIGHT-150, back_buttons, 0.5)
-        self.__game = gogolf_gui.GoGolf("Erol") #temp
+        self.__game = None #temp
         self.__menu_choice = ""
 
     
     def __holes(self, username):
         if self.__three_hole.draw(screen):
+                self.__game = gogolf_gui.GoGolf(username)
                 self.__game.PlayGame(3)
-                self.__game = gogolf_gui.GoGolf(username)
         if self.__five_hole.draw(screen):
-                self.__game.PlayGame(5)
                 self.__game = gogolf_gui.GoGolf(username)
+                self.__game.PlayGame(5)
         if self.__back.draw(screen):
             self.__menu_choice = ""
 

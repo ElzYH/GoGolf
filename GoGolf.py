@@ -18,12 +18,12 @@ LOGGER.info(f'Application started')
 def create_register_table(conn):
     c = conn.cursor()
     c.execute("""CREATE TABLE UserRegister (
-        ID INT AUTO_INCREMENT NOT NULL,
+        ID INTEGER PRIMARY KEY AUTOINCREMENT,
         Username VARCHAR(8),
-        Password VARCHAR(8),
-        PRIMARY KEY('ID')
+        Password VARCHAR(8)
     )""")
     conn.commit()
+
     
 
 def create_selection_table(conn):
