@@ -89,19 +89,19 @@ class Button():
 
         if self.rect.collidepoint(pos):
             screen.blit(self.image_hi, (self.rect.x,self.rect.y))
-            if pygame.mouse.get_pressed()[2] == 1 and self.clicked == False:
+            if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
                 self.hold = True
 
 
 
-        if pygame.mouse.get_pressed()[2] == 0 and self.hold:
+        if pygame.mouse.get_pressed()[0] == 0 and self.hold:
             self.clicked = True
             action = True
             self.hold = False
             
 
 
-        if pygame.mouse.get_pressed()[2] == 0:
+        if pygame.mouse.get_pressed()[0] == 0:
             self.clicked = False
 
 
