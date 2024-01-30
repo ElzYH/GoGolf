@@ -31,6 +31,9 @@ quit_buttons = pygame.image.load('Assests/quit.png')
 back_buttons = pygame.image.load('Assests/back.png')
 three_hole_button = pygame.image.load('Assests/three_hole.png')
 five_hole_button = pygame.image.load('Assests/five_hole.png')
+score_button = pygame.image.load('Assests/score.png')
+time_button = pygame.image.load('Assests/time.png')
+strokes_button = pygame.image.load('Assests/strokes.png')
 
 sign_up_button = pygame.image.load('Assests/sign_up.png')
 login_button = pygame.image.load('Assests/login.png')
@@ -248,6 +251,9 @@ class User():
 
         else:
             c.execute(f"INSERT INTO UserRegister (Username, Password) VALUES ('{self.__username.lower()}', '{self.__password}')")
+            c.execute(f"""INSERT INTO HOLE3NUMBER (Username) VALUES ('{self.__username.lower()}')""")
+            c.execute(f"""INSERT INTO HOLE5NUMBER (Username) VALUES ('{self.__username.lower()}')""")
+
         
         self.__clear_info()
         conn.commit()
@@ -354,8 +360,14 @@ class MainMenu():
         self.__three_hole = gogolf_lilbray.Button(50, 50, three_hole_button, 0.5)
         self.__five_hole = gogolf_lilbray.Button(50, 200, five_hole_button, 0.5)
         self.__back = gogolf_lilbray.Button(50, SCREEN_HEIGHT-150, back_buttons, 0.5)
+        self.__strokes_lb = gogolf_lilbray.Button(50, 50, strokes_button, 0.5)
+        self.__score_lb = gogolf_lilbray.Button(50, 200, score_button, 0.5)
+        self.__time_lb = gogolf_lilbray.Button(50, 350, time_button, 0.5)
         self.__game = None #temp
         self.__menu_choice = ""
+        self.__leaderboard_filter = "score"
+        self.__leaderboard_hole = None
+        self.__leaderboard_text = gogolf_lilbray.Text()
 
     
     def __holes(self, username):
@@ -374,9 +386,89 @@ class MainMenu():
         if self.__play.draw(screen):
             self.__menu_choice = "play"
 
-        self.__lb.draw(screen)
+        if self.__lb.draw(screen):
+            self.__menu_choice = "leaderboard_hole_select"
+
         if self.__quit.draw(screen):
             sys.exit()
+
+    def __leaderboard_holes(self):
+        if self.__three_hole.draw(screen):
+            self.__menu_choice = "leaderboard"
+            self.__leaderboard_hole = 3
+            
+
+        if self.__five_hole.draw(screen):
+            self.__menu_choice = "leaderboard"
+            self.__leaderboard_hole = 5
+
+        if self.__back.draw(screen):
+            self.__menu_choice = ""
+
+    def __filter_options(self):
+        if self.__strokes_lb.draw(screen):
+            self.__leaderboard_filter = "STROKES"
+        if self.__score_lb.draw(screen):
+            self.__leaderboard_filter = "SCORE"
+        if self.__time_lb.draw(screen):
+            self.__leaderboard_filter = "TOTAL_TIME"
+        if self.__back.draw(screen):
+            self.__menu_choice = "leaderboard_hole_select"
+
+
+    def __leaderboard(self, username):
+        self.__filter_options()
+
+        conn = sqlite3.connect("database/GoGolfDB.db")  # Fix the path to the database
+        c = conn.cursor()
+        c.execute(f"""SELECT HOLE{self.__leaderboard_hole}NUMBER.Username, HOLES{self.__leaderboard_hole}.{self.__leaderboard_filter}
+        FROM HOLE{self.__leaderboard_hole}NUMBER INNER JOIN HOLES{self.__leaderboard_hole} 
+        ON HOLE{self.__leaderboard_hole}NUMBER.HOLE{self.__leaderboard_hole}ID == HOLES{self.__leaderboard_hole}.HOLES{self.__leaderboard_hole}ID
+        ORDER BY HOLES{self.__leaderboard_hole}.{self.__leaderboard_filter} DESC
+        """)
+        player_positions = [i for i in c.fetchall()]
+        leader_board = []
+
+        for i in range(0, len(player_positions)):
+            if self.__leaderboard_filter == "TOTAL_TIME":
+                self.__leaderboard_filter = "TIME"
+            pos = f"{str(i+1)}.{"":3}"
+            string_pos_name = f"{player_positions[i][0]:6}"
+            string_result = f"{self.__leaderboard_filter} : {player_positions[i][1]:6}"
+            leader_board.append((pos, string_pos_name, string_result))
+
+        conn.close()
+
+        lb_y_pos = 50
+        lb_x_pos = SCREEN_WIDTH // 2
+
+        if self.__leaderboard_filter == "TIME":
+                self.__leaderboard_filter = "TOTAL_TIME"
+
+        for i in range(0, len(player_positions)):
+            self.__leaderboard_text.set_all(leader_board[i][0], ORANGE, P2, 20, lb_x_pos, lb_y_pos)
+            self.__leaderboard_text.draw_text(screen)
+            self.__leaderboard_text.set_all(leader_board[i][1], ORANGE, P2, 20, lb_x_pos + 50, lb_y_pos)
+            self.__leaderboard_text.draw_text(screen)
+            self.__leaderboard_text.set_all(leader_board[i][2], ORANGE, P2, 20, lb_x_pos + 150, lb_y_pos)
+            self.__leaderboard_text.draw_text(screen)
+            lb_y_pos += 25
+
+
+            
+
+
+
+
+
+
+
+        #Draw a leaderbaord wtih 10 peoples name for each page (that cand be scroll with a & d)
+
+        #Buttons on the side for score, strokes, time, back
+
+
+        
 
             
 
@@ -386,12 +478,21 @@ class MainMenu():
 
             self.__bg.draw_background()
             self.__bg.side_bar()
-            logo.floatiing_logo(SCREEN_WIDTH//2 - 120, SCREEN_HEIGHT//2 - 200)
+            
+            if not self.__menu_choice == "leaderboard":
+                logo.floatiing_logo(SCREEN_WIDTH//2 - 120, SCREEN_HEIGHT//2 - 200)
             if self.__menu_choice == "":
                 self.__buttons()
 
             if self.__menu_choice == "play":
                 self.__holes(username)
+
+            if self.__menu_choice == "leaderboard_hole_select":
+                self.__leaderboard_holes()
+
+            if self.__menu_choice == "leaderboard":
+                self.__leaderboard(username)
+                
             
     
             self.EventHandler(events)

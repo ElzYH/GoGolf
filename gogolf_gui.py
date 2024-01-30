@@ -4,6 +4,7 @@ from math import ceil, degrees, sqrt, cos, tan, atan2, sin
 import sys
 import pickle
 import gogolf_lilbray
+import sqlite3
 
 pygame.init()
 
@@ -102,6 +103,23 @@ class GoGolf():
                 self.LoadWorld()
                 self.__change_level()
             else:
+                conn = sqlite3.connect("database/GoGolfDB.db")
+                c = conn.cursor()
+                c.execute(f"SELECT HOLE{level}ID FROM HOLE{level}NUMBER WHERE Username = '{self.__current_player.get_username()}'")
+                HOLEID = c.fetchone()
+                HOLEID = HOLEID[0]
+                print(HOLEID)
+                c.execute(f"""INSERT INTO HOLES{level} (HOLES{level}ID, SCORE, STROKES, TOTAL_TIME)
+                VALUES ('{HOLEID}','{self.__current_player.get_total_score()}', '{self.__current_player.get_total_stokes()}',
+                '{self.__current_player.get_total_time()}')""")
+
+
+
+                conn.commit()
+                conn.close()
+
+
+
                 self.__game_running = False
 
 
@@ -156,6 +174,10 @@ class GoGolf():
             if event.type == pygame.QUIT:
                 LOGGER.info("Quit Application")
                 sys.exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.__game_running = False
 
         pygame.display.update()
         clock.tick(FPS)
@@ -476,8 +498,14 @@ class Player():
     def get_time(self):
         return self.__time
 
+    def get_total_time(self):
+        return self.__totaltime 
+
     def set_time(self):
         return self.__time
+    
+    def get_total_score(self):
+        return self.__totalscore
 
     def set_username(self, username):
         self.__username = username
@@ -665,7 +693,7 @@ class Golf_Ball():
     def __handle_y_collsion(self, tile, distance):
         """Handle y collsions of the ball with tiles """
 
-        if abs(self.__VelocityOfBall[1]) > 75 and  abs(self.__VelocityOfBall[0]) > 0.1:
+        if abs(self.__VelocityOfBall[1]) > 75 and  abs(self.__VelocityOfBall[0]) > 0.01:
             #Affects the game y ball velocity (flips it to going opposite way and losing energy)
             self.__VelocityOfBall[1] = -self.__VelocityOfBall[1]  / 4
 
@@ -674,7 +702,7 @@ class Golf_Ball():
                 self.__VelocityOfBall[0] -= abs(self.__VelocityOfBall[0]  / 6)*self.__direction
 
 
-        elif abs(self.__VelocityOfBall[1]) > 0.2 and  abs(self.__VelocityOfBall[0]) > 0.1:
+        elif abs(self.__VelocityOfBall[1]) > 0.2 and  abs(self.__VelocityOfBall[0]) > 0.01:
             
             #Affects the game y ball velocity (flips it to going opposite way and losing energy)
             self.__VelocityOfBall[1] = -self.__VelocityOfBall[1]  / 3
@@ -683,7 +711,7 @@ class Golf_Ball():
             if abs(self.__VelocityOfBall[0]  / 6)*self.__direction > 0:
                 print(abs(self.__VelocityOfBall[0]))
                 print(abs(self.__VelocityOfBall[0]  / 6)*self.__direction)
-                self.__VelocityOfBall[0] -= abs(self.__VelocityOfBall[0]  / 6)*self.__direction
+                self.__VelocityOfBall[0] -= abs(self.__VelocityOfBall[0]  / 5.5)*self.__direction
             
 
             LOGGER.info(f"hit y {tile.get_rect().y}")
@@ -704,11 +732,11 @@ class Golf_Ball():
 
 
 
-    def __handle_goal_collsion(self, tile, distance):
+    def __handle_goal_collsion(self, tile, distance, update_step):
         """Handle goal collsions of the ball with goal tiles """
 
         #Checks if ball gone in the hole
-        if tile.get_rect().y - 1*TILE_SIZE//2 < self.__GOLFBALL_rect.y and tile.get_goal_active():
+        if tile.get_rect().y - TILE_SIZE*update_step < self.__GOLFBALL_rect.y and tile.get_goal_active():
 
             tile.set_goal_active(False)
             self.__reset_ball_location(distance)
@@ -742,7 +770,7 @@ class Golf_Ball():
         if tile.get_block_type() == "goal" and tile.get_rect().colliderect(-distance + self.__GOLFBALL_rect.x , 
         self.__GOLFBALL_rect.y, self.__GOLFBALL_image.get_width(), self.__GOLFBALL_image.get_height()):
 
-            self.__handle_goal_collsion(tile, distance)
+            self.__handle_goal_collsion(tile, distance, update_step)
             LOGGER.info(f"Goal hit: {tile.get_rect().y - 1*TILE_SIZE//3 > self.__GOLFBALL_rect.y}")
             LOGGER.info(f"TILE pos: {tile.get_rect().y - 1*TILE_SIZE//3} BAll pos: {self.__GOLFBALL_rect.y}")
 
@@ -750,7 +778,7 @@ class Golf_Ball():
         else:
 
             #CHECK Y collsions
-            if tile.get_rect().colliderect(-distance + self.__GOLFBALL_rect.x , self.__GOLFBALL_rect.y + (self.__VelocityOfBall[1]*update_step), self.__GOLFBALL_image.get_width(), self.__GOLFBALL_image.get_height()):
+            if tile.get_rect().colliderect(-distance + self.__GOLFBALL_rect.x , self.__GOLFBALL_rect.y + (self.__VelocityOfBall[1]*update_step) + 0.2, self.__GOLFBALL_image.get_width(), self.__GOLFBALL_image.get_height()):
                 self.__handle_y_collsion(tile, distance)
 
             #CHECK X collsions
