@@ -22,6 +22,7 @@ pygame.display.set_icon(icon)
 background_1 = pygame.image.load('Background_Img/1.png').convert_alpha()
 background_2 = pygame.image.load('Background_Img/2.png').convert_alpha()
 background_3 = pygame.image.load('Background_Img/4.png').convert_alpha()
+leaderboard_wall = pygame.image.load('Assests/leaderboard_wall.png')
 
 logo = pygame.image.load('Assests/logo1.png').convert_alpha()
 
@@ -34,6 +35,7 @@ five_hole_button = pygame.image.load('Assests/five_hole.png')
 score_button = pygame.image.load('Assests/score.png')
 time_button = pygame.image.load('Assests/time.png')
 strokes_button = pygame.image.load('Assests/strokes.png')
+
 
 sign_up_button = pygame.image.load('Assests/sign_up.png')
 login_button = pygame.image.load('Assests/login.png')
@@ -451,12 +453,14 @@ class MainMenu():
         if self.__leaderboard_filter == "TIME":
                 self.__leaderboard_filter = "TOTAL_TIME"
 
+
+        screen.blit(leaderboard_wall, (SCREEN_WIDTH//2, 150))
         for i in range(0, len(player_positions)):
-            self.__leaderboard_text.set_all(leader_board[i][0], ORANGE, P2, 20, lb_x_pos, lb_y_pos)
+            self.__leaderboard_text.set_all(leader_board[i][0], BLACK, P2, 20, lb_x_pos, lb_y_pos)
             self.__leaderboard_text.draw_text(screen)
-            self.__leaderboard_text.set_all(leader_board[i][1], ORANGE, P2, 20, lb_x_pos + 50, lb_y_pos)
+            self.__leaderboard_text.set_all(leader_board[i][1], BLACK, P2, 20, lb_x_pos + 50, lb_y_pos)
             self.__leaderboard_text.draw_text(screen)
-            self.__leaderboard_text.set_all(leader_board[i][2], ORANGE, P2, 20, lb_x_pos + 150, lb_y_pos)
+            self.__leaderboard_text.set_all(leader_board[i][2], BLACK, P2, 20, lb_x_pos + 150, lb_y_pos)
             self.__leaderboard_text.draw_text(screen)
             lb_y_pos += 25
 
