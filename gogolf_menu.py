@@ -420,11 +420,17 @@ class MainMenu():
         self.__filter_options()
 
         conn = sqlite3.connect("database/GoGolfDB.db")  # Fix the path to the database
+
+        if self.__leaderboard_filter == "STROKES":
+            order = "ASC"
+        else:
+            order = "DESC"
+
         c = conn.cursor()
         c.execute(f"""SELECT HOLE{self.__leaderboard_hole}NUMBER.Username, HOLES{self.__leaderboard_hole}.{self.__leaderboard_filter}
         FROM HOLE{self.__leaderboard_hole}NUMBER INNER JOIN HOLES{self.__leaderboard_hole} 
         ON HOLE{self.__leaderboard_hole}NUMBER.HOLE{self.__leaderboard_hole}ID == HOLES{self.__leaderboard_hole}.HOLES{self.__leaderboard_hole}ID
-        ORDER BY HOLES{self.__leaderboard_hole}.{self.__leaderboard_filter} DESC
+        ORDER BY HOLES{self.__leaderboard_hole}.{self.__leaderboard_filter} {order}
         """)
         player_positions = [i for i in c.fetchall()]
         leader_board = []
