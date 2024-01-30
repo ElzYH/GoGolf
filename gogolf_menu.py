@@ -167,6 +167,7 @@ class User():
         self.__display_username = gogolf_lilbray.Text()
         self.__error = ""
         self.__display_error = gogolf_lilbray.Text()
+        self.__item_box_text = gogolf_lilbray.Text()
 
     def __buttons(self, events):
         if self.__login.draw(screen):
@@ -182,6 +183,10 @@ class User():
     def __user_password(self, events):
         pygame.draw.rect(screen, WHITE, (SCREEN_WIDTH//2- 50, SCREEN_HEIGHT//2 - 50, 300, 40))
         pygame.draw.rect(screen, WHITE, (SCREEN_WIDTH//2- 50, SCREEN_HEIGHT//2 - 5, 300, 40))
+        self.__item_box_text.set_all("Username:", BLACK, P2, 20, SCREEN_WIDTH//2 - 190, SCREEN_HEIGHT//2 - 40)
+        self.__item_box_text.draw_text(screen)
+        self.__item_box_text.set_all("Password:", BLACK, P2, 20, SCREEN_WIDTH//2- 190, SCREEN_HEIGHT//2 + 5)
+        self.__item_box_text.draw_text(screen)
         if self.__section == "user":
             self.__username_setter(events)
 
@@ -367,9 +372,10 @@ class MainMenu():
         self.__time_lb = gogolf_lilbray.Button(50, 350, time_button, 0.5)
         self.__game = None #temp
         self.__menu_choice = ""
-        self.__leaderboard_filter = "score"
+        self.__leaderboard_filter = "SCORE"
         self.__leaderboard_hole = None
         self.__leaderboard_text = gogolf_lilbray.Text()
+        self.__change_range = 15
 
     
     def __holes(self, username):
@@ -420,7 +426,7 @@ class MainMenu():
 
     def __leaderboard(self, username):
         self.__filter_options()
-
+        screen.blit(leaderboard_wall, (SCREEN_WIDTH//2 - 50, 75))
         conn = sqlite3.connect("database/GoGolfDB.db")  # Fix the path to the database
 
         if self.__leaderboard_filter == "STROKES":
@@ -437,6 +443,13 @@ class MainMenu():
         player_positions = [i for i in c.fetchall()]
         leader_board = []
 
+        keys =  pygame.key.get_pressed()
+        if keys[pygame.K_d]:
+            self.__change_range += 15
+
+        if keys[pygame.K_a] and self.__change_range > 15:
+            self.__change_range -= 15
+        
         for i in range(0, len(player_positions)):
             if self.__leaderboard_filter == "TOTAL_TIME":
                 self.__leaderboard_filter = "TIME"
@@ -447,22 +460,25 @@ class MainMenu():
 
         conn.close()
 
-        lb_y_pos = 50
+        lb_y_pos = 125
         lb_x_pos = SCREEN_WIDTH // 2
 
         if self.__leaderboard_filter == "TIME":
                 self.__leaderboard_filter = "TOTAL_TIME"
 
 
-        screen.blit(leaderboard_wall, (SCREEN_WIDTH//2, 150))
-        for i in range(0, len(player_positions)):
-            self.__leaderboard_text.set_all(leader_board[i][0], BLACK, P2, 20, lb_x_pos, lb_y_pos)
-            self.__leaderboard_text.draw_text(screen)
-            self.__leaderboard_text.set_all(leader_board[i][1], BLACK, P2, 20, lb_x_pos + 50, lb_y_pos)
-            self.__leaderboard_text.draw_text(screen)
-            self.__leaderboard_text.set_all(leader_board[i][2], BLACK, P2, 20, lb_x_pos + 150, lb_y_pos)
-            self.__leaderboard_text.draw_text(screen)
-            lb_y_pos += 25
+        for i in range(-15 + self.__change_range, self.__change_range):
+            if i < len(player_positions):
+                self.__leaderboard_text.set_all(leader_board[i][0], BLACK, P2, 20, lb_x_pos, lb_y_pos)
+                self.__leaderboard_text.draw_text(screen)
+                self.__leaderboard_text.set_all(leader_board[i][1], BLACK, P2, 20, lb_x_pos + 50, lb_y_pos)
+                self.__leaderboard_text.draw_text(screen)
+                self.__leaderboard_text.set_all(leader_board[i][2], BLACK, P2, 20, lb_x_pos + 150, lb_y_pos)
+                self.__leaderboard_text.draw_text(screen)
+                lb_y_pos += 35
+                print("hi")
+            else:
+                break
 
 
             

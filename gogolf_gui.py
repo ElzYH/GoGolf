@@ -335,8 +335,8 @@ class World():
                         self.obstacle_list.append(tile_data)
                         self.__goals_list.append(tile_data)
                     elif block == 20:
-                        golfball.set_ball_postion(x*TILE_SIZE, y*TILE_SIZE + 25)
-                        self.__ball_spawn_location = (x*TILE_SIZE, y*TILE_SIZE + 25)
+                        golfball.set_ball_postion(x*TILE_SIZE, y*TILE_SIZE + 28)
+                        self.__ball_spawn_location = (x*TILE_SIZE, y*TILE_SIZE + 28)
 
 
     def draw(self, distance_moved):
@@ -626,8 +626,8 @@ class Level():
 
 class Golf_Ball():
     def __init__(self):
-        self.__GOLFBALL_image = pygame.transform.scale(GOLFBALL_IMG,(int(GOLFBALL_WIDITH*1.38), 
-        int(GOLFBALL_HEIGHT*1.38)))
+        self.__GOLFBALL_image = pygame.transform.scale(GOLFBALL_IMG,(int(GOLFBALL_WIDITH*1.3), 
+        int(GOLFBALL_HEIGHT*1.3)))
         self.__BallPostion = [0,0] #[x,y] Where image of the ball postioned within the game 
         self.__GOLFBALL_rect = GOLFBALL_IMG.get_rect() #Rectangle for collison for golfball
         self.__GOLFBALL_rect.x = self.__BallPostion[0] #Rectangele x postion
@@ -719,9 +719,9 @@ class Golf_Ball():
         else:
             #Ball has stop moving, so this tell the program that
             self.__stop = True
-            self.__ball_pre_pos = (self.__BallPostion[0] - distance, tile.get_rect().y - 22)
+            self.__ball_pre_pos = (self.__BallPostion[0] - distance, tile.get_rect().y - 20)
             #Set ball postion above tile to help ball be above the ties
-            self.set_ball_postion(self.__BallPostion[0], tile.get_rect().y - 22)
+            self.set_ball_postion(self.__BallPostion[0], tile.get_rect().y - 20)
 
 
     def __handle_x_collsion(self):
