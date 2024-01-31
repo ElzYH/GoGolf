@@ -1,4 +1,3 @@
-import gogolf_gui
 import gogolf_menu
 from pygame.locals import *
 from Logger import *
@@ -79,6 +78,8 @@ if __name__ == "__main__":
     LOGGER.info('Hello')
     check_database()
     gogolf_menu.menu()
+
+
 
 
 

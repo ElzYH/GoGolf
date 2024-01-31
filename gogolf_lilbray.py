@@ -37,7 +37,6 @@ class Text:
         self.set_x(x)
         self.set_y(y)
 
-
     def draw_text(self, screen):
         text_surface, rect = self.__font.render(self.__text, pygame.Color(self.__colour))
         screen.blit(text_surface, (self.__x, self.__y))
@@ -66,18 +65,18 @@ class Button():
         for x in range(image_copy.get_width()):
             for y in range(image_copy.get_height()):
                 # Get the color of the pixel
-                color = image_copy.get_at((x, y))
+                colour = image_copy.get_at((x, y))
 
                 # Brighten RGB channels while leaving alpha channel unchanged
-                new_color = (
-                    min(int(color.r * brightness_factor), 255),
-                    min(int(color.g * brightness_factor), 255),
-                    min(int(color.b * brightness_factor), 255),
-                    color.a
+                new_colour = (
+                    min(int(colour.r * brightness_factor), 255),
+                    min(int(colour.g * brightness_factor), 255),
+                    min(int(colour.b * brightness_factor), 255),
+                    colour.a
                 )
 
                 # Set the new color to the pixel
-                image_copy.set_at((x, y), new_color)
+                image_copy.set_at((x, y), new_colour)
 
         return image_copy
 
@@ -92,24 +91,20 @@ class Button():
             if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
                 self.hold = True
 
-
-
         if pygame.mouse.get_pressed()[0] == 0 and self.hold:
             self.clicked = True
             action = True
             self.hold = False
             
-
-
         if pygame.mouse.get_pressed()[0] == 0:
             self.clicked = False
-
 
         if self.rect.collidepoint(pos):
             screen.blit(self.image_hi, (self.rect.x,self.rect.y))
 
         else:
             screen.blit(self.image, (self.rect.x,self.rect.y))
+
         return action
 
 
@@ -145,3 +140,76 @@ class Enter_Text:
         """Clears the Current text"""
         self.name = ""
         self.textinput.value = ""
+
+
+class queue:
+  """Queue data structure"""
+  def __init__(self, capacity):
+    self.__capacity = capacity
+    self.__array = [None]*capacity
+    self.__fpointer = 0
+    self.__rpointer = 0
+
+  def enqueue(self,item):
+    if self.__rpointer == self.__capacity:
+      if self.__fpointer == 0:
+        print("Queue is full")
+        return
+      else:
+        for i in range(self.__fpointer,self.__rpointer):
+          self.__array[i - self.__fpointer] = self.__array[i]
+        self.__rpointer -= self.__fpointer
+        self.__fpointer = 0
+    self.__array[self.__rpointer] = item
+    self.__rpointer += 1
+
+  def dequeue(self):
+    if self.__fpointer == self.__rpointer:
+      print("Empty Queue")
+    else:
+      self.__fpointer += 1
+      return self.__array[self.__fpointer - 1]
+
+
+
+def merge_sort(list1):
+  if len(list1) == 1:
+    return list1
+  left_list = list1[:len(list1)//2]
+  right_list = list1[len(list1)//2:]
+  left_list = merge_sort(left_list)
+  right_list = merge_sort(right_list)
+  results = []
+  while len(left_list) > 0 and len(right_list) > 0:
+    if left_list[0] < right_list[0]:
+      results.append(left_list.pop(0))
+    else:
+      results.append(right_list.pop(0))
+  results.extend(left_list)
+  results.extend(right_list)
+  return results 
+
+
+
+class stack:
+  def __init__(self,capactiy):
+    self.__capacity = capactiy
+    self.__array = [None]*capactiy
+    self.__pointer = 0
+
+
+  def push(self,item):
+    if self.__pointer < self.__capacity:
+      self.__array[self.__pointer] = item
+      self.__pointer += 1
+    else:
+      print('stack overflow')
+
+  def pop(self):
+    if self.__pointer == 0:
+      print('stack undeflow')
+    else:
+      self.__pointer -= 1
+      return self.__array[self.__pointer]
+
+

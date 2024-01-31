@@ -76,7 +76,6 @@ class Tee_Box():
         self.__BG = Background()
         self.__start_menu = StartScreen(self.__BG)
         self.__account = User(self.__BG)
-        self.__GameModule = gogolf_gui.GoGolf("Erol")
         self.__menu = MainMenu(self.__BG)
 
     def Game(self):
@@ -380,10 +379,10 @@ class MainMenu():
     
     def __holes(self, username):
         if self.__three_hole.draw(screen):
-                self.__game = gogolf_gui.GoGolf(username)
+                self.__game = gogolf_gui.GoGolf(username, 3)
                 self.__game.PlayGame(3)
         if self.__five_hole.draw(screen):
-                self.__game = gogolf_gui.GoGolf(username)
+                self.__game = gogolf_gui.GoGolf(username, 5)
                 self.__game.PlayGame(5)
         if self.__back.draw(screen):
             self.__menu_choice = ""

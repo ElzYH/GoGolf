@@ -60,14 +60,14 @@ class LevelEditor():
         self.__save_button = Button(SCREEN_WIDTH // 2, SCREEN_HEIGHT + LOWER_MARGIN - 75, save_img, 1)
         self.__load_button = Button(SCREEN_WIDTH // 2 + 200, SCREEN_HEIGHT + LOWER_MARGIN - 75, load_img, 1)
         self.__speed_muiltplier = 1
-        self.__scroll_left = False
-        self.__scroll_right = False
         self.__pause = False
         self.__confirm = True
         self.__total_scroll = 0 
 
 
     def __UpdateSpeedMuilplier(self, keys):
+        """Speed up camera"""
+
         if keys[pygame.K_LSHIFT]:
             LOGGER.info('Spped Muiltplied')
             self.__speed_muiltplier = 5
@@ -76,6 +76,7 @@ class LevelEditor():
 
 
     def LevelControls(self, keys):
+        """Level controls, that move the camera"""
         # Modify background_scroll based on user input or scrolling mechanism
         # For example, you can use the arrow keys:
 
@@ -93,6 +94,8 @@ class LevelEditor():
 
 
     def __DisplayLevelInfomation(self):
+        """Displays UI elemetns such as text promt and current level"""
+
         #Text
         text = Text()
         text.set_all(f'Level: {self.__current_level.Get_Level():2}', "Black", WII_FONT, 35, 10 , SCREEN_HEIGHT + LOWER_MARGIN - 90 )
@@ -103,6 +106,8 @@ class LevelEditor():
 
 
     def __DrawEditor(self):
+        """Draws world, grid, and UI"""
+
         self.__current_level._DrawBackground()
         self._DrawWorld()
         self._DrawGrid()
@@ -140,13 +145,10 @@ class LevelEditor():
         pygame.display.update()
         clock.tick(FPS)
 
-        
-    
-            
-        
 
     def __ChangeLevel(self, event):
-        if event.key == pygame.K_e and not self.__current_level.Get_Level() >= 5:
+
+        if event.key == pygame.K_e and not self.__current_level.Get_Level() >= 8:
             self.__current_level.UpdateSelectedLevel(1)
         if event.key == pygame.K_q:  
             if not self.__current_level.Get_Level() <= 1: 
@@ -154,6 +156,8 @@ class LevelEditor():
 
     
     def Editor(self):
+        """Editor loop (main loop)"""
+
         LOGGER.info('In editor loop')
         
         while self.__editor_running:
@@ -182,6 +186,8 @@ class LevelEditor():
                 
 
     def _DrawTileButtons(self, button_list):
+        """Draw all tile buttons"""
+
         #Tile buttons
         #Selecting  a tile
         for i in range(0, TILE_TYPES):
@@ -192,6 +198,8 @@ class LevelEditor():
 
 
     def _DrawGrid(self):
+        """Draw grid"""
+
         # Vertical lines
         for c in range(-2 ,MAX_COLS + 1):
             pygame.draw.line(screen, WHITE, (c * TILE_SIZE +  self.__total_scroll, 0), (c * TILE_SIZE +  self.__total_scroll, SCREEN_HEIGHT))
@@ -202,6 +210,8 @@ class LevelEditor():
 
     #Function for drrawing the world tiles dictionary #EEE
     def _DrawWorld(self):
+        """Draw world"""
+
         for y, row in enumerate(self.__current_level.Get_WorldData()):
             for x, tile in enumerate(row):
                 if tile >= 0: 
@@ -209,6 +219,8 @@ class LevelEditor():
 
 
     def EditorControls(self):
+        """Editor controls"""
+
         pos = pygame.mouse.get_pos()
         x = (pos[0] - self.__total_scroll) // TILE_SIZE
         y = pos[1] // TILE_SIZE
@@ -222,6 +234,8 @@ class LevelEditor():
 
 
     def PasueEditor(self, select):
+        """Pause the game"""
+
         self.__pause = True
         LOGGER.info("Game Paused")
         while self.__pause:
@@ -235,6 +249,8 @@ class LevelEditor():
     
 
     def SaveWorld(self):
+        """Save world data"""
+
         self.PasueEditor("SAVE")
         LOGGER.info("Save Game")
         if self.__confirm:
@@ -246,6 +262,8 @@ class LevelEditor():
 
 
     def LoadWorld(self):
+        """Load world data"""
+
         self.PasueEditor("LOAD")
         LOGGER.info("Save Level")
         if self.__confirm:
@@ -286,6 +304,8 @@ class Level():
 
         
     def __SetupTileButtons(self):
+        """Set up tile button"""
+
         LOGGER.info("Setup Tile Buttons")
         # Make button list
         button_tile_list = []
@@ -411,11 +431,6 @@ class Level():
 
 
 
-    
-
-
-
-
 class Button():
     """Creates Buttons that change image when the user mouse postion is over the button"""
     def __init__(self,x,y,image,scale):
@@ -436,18 +451,18 @@ class Button():
         for x in range(image_copy.get_width()):
             for y in range(image_copy.get_height()):
                 # Get the color of the pixel
-                color = image_copy.get_at((x, y))
+                colour = image_copy.get_at((x, y))
 
                 # Brighten RGB channels while leaving alpha channel unchanged
-                new_color = (
-                    min(int(color.r * brightness_factor), 255),
-                    min(int(color.g * brightness_factor), 255),
-                    min(int(color.b * brightness_factor), 255),
-                    color.a
+                new_colour = (
+                    min(int(colour.r * brightness_factor), 255),
+                    min(int(colour.g * brightness_factor), 255),
+                    min(int(colour.b * brightness_factor), 255),
+                    colour.a
                 )
 
                 # Set the new color to the pixel
-                image_copy.set_at((x, y), new_color)
+                image_copy.set_at((x, y), new_colour)
 
         return image_copy
 

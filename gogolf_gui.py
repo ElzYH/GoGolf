@@ -1,6 +1,6 @@
 import pygame
 import logging
-from math import ceil, degrees, sqrt, cos, tan, atan2, sin
+from math import ceil, degrees, sqrt, cos, atan2, sin
 import sys
 import pickle
 import gogolf_lilbray
@@ -57,19 +57,35 @@ TILE_TYPES = 21
 
 
 class GoGolf():
-    def __init__(self, username):
+    def __init__(self, username, level):
         self.__game_running = True #is the game running
         self.__current_player = Player(username) #Current player
-        self.__currentlevel = Level(1, 'Level_Editor/Background_Image/bg.png') #Current level
-        self.__past_camera_theshold = False #Camera theshold
-        self.__gap = 0 #Differnce between threshold left and right
+        self.__currentlevel = Level(1) #Current level
         self.__muitplier = 1.5 #Muilplier
         self.__distance_moved = 0 #Distance moved from the start
         self.__world = World()
         self.__player_text = gogolf_lilbray.Text()
-        self.__count = -10
+        self.__count = -10  #Offset
+        self.__world_queue = self.__create_world_queue(level)
+
+    def __create_world_queue(self, level):
+        """Creates a Queue that hold each level"""
+
+        worlds = gogolf_lilbray.queue(level)
+        for i in range(level):
+
+            #Finds the level
+            pickle_in = open(f'Levels/level{i+1}_data', 'rb')
+    
+            #Load the level 
+            worlds.enqueue(pickle.load(pickle_in))
+
+        return worlds
 
     def __UI_playerinfo(self):
+        """Displays UI elements such as amount of strokes and
+        score"""
+
         self.__player_text.set_all(f"Strokes: {self.__current_player.get_strokes():3}", ORANGE, P2, 22, SCREEN_WIDTH - 167, SCREEN_HEIGHT - 30)
         self.__player_text.draw_text(screen)
         self.__player_text.set_text(f"Time: {str(self.__current_player.get_time()//60).zfill(2):1}:{str(self.__current_player.get_time() % 60).zfill(2):1}")
@@ -77,6 +93,8 @@ class GoGolf():
         self.__player_text.draw_text(screen)
 
     def __prepare_next_level(self):
+        """Reset level conditions and changes the current level"""
+
         self.__current_player.score_calculator(len(self.__world.get_goal_list()))
         self.__current_player.reset()
         self.__world = World()
@@ -85,48 +103,56 @@ class GoGolf():
         self.__currentlevel.next_level(1)
 
     def __change_level(self):
+        """Proccess new data for the new level and reset level postions"""
+
         self.__world.proccess_data(self.__currentlevel.get_world_data(), self.__currentlevel.get_block_list(), self.__current_player.get_golfball())
         self.__current_player.get_golfball().set_spawn_location(self.__world.get_spawn_location())
         self.__current_player.get_golfball().set_ball_postion(self.__world.get_spawn_location()[0] + self.__distance_moved, self.__world.get_spawn_location()[1])
         self.__currentlevel.set_control_background(True)
 
     def __timer(self):
+        """Timer that uses FPS as timer, meaning timer is linked
+        to the game and not the computer"""
+
         self.__count += 1
         if self.__count > clock.get_fps():
             self.__current_player.add_to_time(1)
             self.__count = 0
 
+    def __save_game_records(self, level):
+        """Records game results"""
+
+        conn = sqlite3.connect("database/GoGolfDB.db")
+        c = conn.cursor()
+        c.execute(f"SELECT HOLE{level}ID FROM HOLE{level}NUMBER WHERE Username = '{self.__current_player.get_username()}'")
+        HOLEID = c.fetchone()
+        HOLEID = HOLEID[0]
+        c.execute(f"""INSERT INTO HOLES{level} (HOLES{level}ID, SCORE, STROKES, TOTAL_TIME)
+        VALUES ('{HOLEID}','{self.__current_player.get_total_score()}', '{self.__current_player.get_total_stokes()}',
+        '{self.__current_player.get_total_time()}')""")
+
+        conn.commit()
+        conn.close()
+
+
     def __is_level_completed(self, level):
+        """Checks to either to load level or
+        to save user data"""
+
         if self.__world.level_completed():
             self.__prepare_next_level()
             if not self.__currentlevel.get_level() > level:
                 self.LoadWorld()
                 self.__change_level()
             else:
-                conn = sqlite3.connect("database/GoGolfDB.db")
-                c = conn.cursor()
-                c.execute(f"SELECT HOLE{level}ID FROM HOLE{level}NUMBER WHERE Username = '{self.__current_player.get_username()}'")
-                HOLEID = c.fetchone()
-                HOLEID = HOLEID[0]
-                print(HOLEID)
-                c.execute(f"""INSERT INTO HOLES{level} (HOLES{level}ID, SCORE, STROKES, TOTAL_TIME)
-                VALUES ('{HOLEID}','{self.__current_player.get_total_score()}', '{self.__current_player.get_total_stokes()}',
-                '{self.__current_player.get_total_time()}')""")
-
-
-
-                conn.commit()
-                conn.close()
-
-
-
+                self.__save_game_records(self, level)
                 self.__game_running = False
 
 
     def PlayGame(self, level):
         """Main Game Loop """
 
-        #Temp location
+        #Load first level
         self.LoadWorld()
         self.__world.proccess_data(self.__currentlevel.get_world_data(), self.__currentlevel.get_block_list(), self.__current_player.get_golfball())
         self.__current_player.get_golfball().set_spawn_location(self.__world.get_spawn_location())
@@ -297,14 +323,14 @@ class GoGolf():
         LOGGER.info("Save Level")
 
         #Finds the level
-        pickle_in = open(f'Levels/level{self.__currentlevel.get_level()}_data', 'rb')
+        level_in = self.__world_queue.dequeue()
 
         #Reset World
         self.__currentlevel.set_scroll_background(0)
         self.__currentlevel.set_World_data(world_data)
 
         #Load the level 
-        self.__currentlevel.set_World_data(pickle.load(pickle_in))
+        self.__currentlevel.set_World_data(level_in)
         LOGGER.info(f"Level {self.__currentlevel.get_level()} has been loaded ")
 
 
@@ -316,6 +342,8 @@ class World():
         self.__goals_list = []
 
     def proccess_data(self, world_data, tile_img_list, golfball):
+        """Proccess the world data and gives all tiles it own properties"""
+
         for y, row in enumerate(world_data):
             for x, block in enumerate(row):
                 if block >= 0:
@@ -350,6 +378,8 @@ class World():
 
 
     def level_completed(self):
+        """Checks if all goals have been hit"""
+
         holes = 0
         for goal in self.__goals_list:
             if not goal.get_goal_active():
@@ -411,7 +441,6 @@ class Goal(Tile):
         self._goal_post = pygame.image.load("Assests/tile/19.png").convert_alpha()
         self._goal_post = pygame.transform.scale(self._goal_post, (TILE_SIZE, TILE_SIZE))
         self.__goal_active = True
-        self.__y_pos = self.get_rect().y
 
     def Display_Goal(self, distance_moved):
         if self.__goal_active == True:
@@ -435,6 +464,21 @@ class Player():
         self.__time = 0
         self.__strokes = 0
 
+    def __divider(self):
+        """Diver is way of measuring rewaring a player
+        with higher divider for fewer strokes"""
+        
+        if self.__strokes >= 0 and self.__strokes <= 9:
+            return 14
+        elif self.__strokes >= 10 and self.__strokes <= 15:
+            return 10
+        elif self.__strokes >= 16 and self.__strokes <= 20:
+            return 8
+        elif self.__strokes >= 21 and self.__strokes <= 28:
+            return 6
+        elif self.__strokes >= 29 and self.__strokes <= 35:
+            return 2
+        return -(self.__strokes/10)
 
     def add_to_totalstokes(self, strokes):
         self.__totalstrokes += strokes
@@ -451,28 +495,17 @@ class Player():
     def new_ball(self):
         self.__playergolfball = Golf_Ball()
 
-
     def reset(self):
+        """Reset strokes and time"""
+
         self.__totalstrokes += self.__strokes
         self.__totaltime += self.__time
         self.__strokes = 0
         self.__time = 0
 
-    def __divider(self):
-        if self.__strokes >= 0 and self.__strokes <= 9:
-            return 14
-        elif self.__strokes >= 10 and self.__strokes <= 15:
-            return 10
-        elif self.__strokes >= 16 and self.__strokes <= 20:
-            return 8
-        elif self.__strokes >= 21 and self.__strokes <= 28:
-            return 6
-        elif self.__strokes >= 29 and self.__strokes <= 35:
-            return 2
-        return -(self.__strokes/10)
-
-
     def score_calculator(self, amount_of_goals):
+        """Calculates score"""
+
         starting_score = amount_of_goals * 1000
         LOGGER.info(f"starting score: {starting_score}")
         divder = self.__divider()  # Replace 1 with the default value
@@ -482,7 +515,6 @@ class Player():
         LOGGER.info(f"Total score: {self.__totalscore}")
         
         
-
     def get_username(self):
         return self.__username
     
@@ -516,13 +548,11 @@ class Player():
     def set_strokes(self, strokes):
         self.__strokes = strokes
 
-    def set_currentlevel(self, level):
-        self.__currentlevel = level
 
 
 
 class Level():
-    def __init__(self, levelname, background):
+    def __init__(self, levelname):
         self.__level = levelname #Current level
         self.__backgroundscroll = 0 #Background scroll starts at zero
         self.__backgrond_widith = background_1.get_width()
@@ -547,7 +577,6 @@ class Level():
             tile_list.append(img)
         return tile_list
 
-
     def draw_background(self):
         """Draw the background for the game """
 
@@ -555,7 +584,6 @@ class Level():
             screen.blit(background_1, (((i * self.__backgrond_widith) + self.__backgroundscroll) , 0))
             screen.blit(background_2, (((i * self.__backgrond_widith) + self.__backgroundscroll), 0))
             screen.blit(background_3, (((i * self.__backgrond_widith) + self.__backgroundscroll), 0))
-
 
     def update_backgorund(self):
         """Add a new tile in either vertical direction"""
@@ -568,12 +596,10 @@ class Level():
         if abs(self.__backgroundscroll) < self.__backgrond_widith and self.__backgroundscroll > 0:
             self.__backgroundscroll = self.__backgroundscroll - self.__backgrond_widith
 
-
     def create_background(self):
         """Creates the game backgorund and updates it """
         self.draw_background()
         self.update_backgorund()
-
 
     def update_scroll_right(self, number):
         """Scroll backgorund right """
@@ -709,8 +735,6 @@ class Golf_Ball():
 
             #Affects the game x ball velocity
             if abs(self.__VelocityOfBall[0]  / 6)*self.__direction > 0:
-                print(abs(self.__VelocityOfBall[0]))
-                print(abs(self.__VelocityOfBall[0]  / 6)*self.__direction)
                 self.__VelocityOfBall[0] -= abs(self.__VelocityOfBall[0]  / 5.5)*self.__direction
             
 
@@ -788,6 +812,7 @@ class Golf_Ball():
 
     def aim(self, player):
         """Use to set the force of ball (ball speed) and the ball angle"""
+
         mouse_position = pygame.mouse.get_pos()
         self.__line_up(mouse_position)
         self.__shot_infomation()
@@ -805,6 +830,7 @@ class Golf_Ball():
 
     def swing(self):
         """Sets velocitys in x and y"""
+
         #Intial Velocitys 
         XVelocity = -self.__BallSpeed*cos(self.__BallAngle)
         YVelocity = -self.__BallSpeed*sin(self.__BallAngle)
@@ -834,6 +860,7 @@ class Golf_Ball():
 
 
     def trajecotry(self, obstacles, distance, player):
+
         update_step = 0.025
 
         #Checks if the player has took the shot
