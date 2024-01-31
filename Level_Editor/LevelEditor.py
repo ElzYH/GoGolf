@@ -2,7 +2,6 @@ import pygame
 import sys
 import math
 import os
-import numpy 
 import pickle
 
 sys.path.append('../GoGolf')

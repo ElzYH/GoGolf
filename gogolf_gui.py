@@ -5,6 +5,8 @@ import sys
 import pickle
 import gogolf_lilbray
 import sqlite3
+from random import randint
+import numpy as np
 
 pygame.init()
 
@@ -18,7 +20,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH,SCREEN_HEIGHT))
 
 #FPS
 clock = pygame.time.Clock()
-FPS = 100
+FPS = 200
 
 pygame.display.set_caption("Go Golf")
 #icon = pygame.image.load('Assets/uno_icon.ico')
@@ -57,7 +59,7 @@ TILE_TYPES = 21
 
 
 class GoGolf():
-    def __init__(self, username, level):
+    def __init__(self, username, level, random):
         self.__game_running = True #is the game running
         self.__current_player = Player(username) #Current player
         self.__currentlevel = Level(1) #Current level
@@ -66,16 +68,22 @@ class GoGolf():
         self.__world = World()
         self.__player_text = gogolf_lilbray.Text()
         self.__count = -10  #Offset
+        self.__random = random
         self.__world_queue = self.__create_world_queue(level)
 
     def __create_world_queue(self, level):
         """Creates a Queue that hold each level"""
+        
 
         worlds = gogolf_lilbray.queue(level)
         for i in range(level):
+            
+            if self.__random:
+                pickle_in = open(f'Levels/level{randint(1, 7)}_data', 'rb')
 
-            #Finds the level
-            pickle_in = open(f'Levels/level{i+1}_data', 'rb')
+            else:
+                #Finds the level
+                pickle_in = open(f'Levels/level{i+1}_data', 'rb')
     
             #Load the level 
             worlds.enqueue(pickle.load(pickle_in))
@@ -145,7 +153,8 @@ class GoGolf():
                 self.LoadWorld()
                 self.__change_level()
             else:
-                self.__save_game_records(self, level)
+                if not self.__random:
+                    self.__save_game_records(self, level)
                 self.__game_running = False
 
 
@@ -170,6 +179,7 @@ class GoGolf():
                 self.__world.draw(self.__distance_moved)
                 if not self.__currentlevel.get_control_backgorund():
                     self.set_camera_pos()
+                    
 
             else:
                 self.__world.draw(self.__distance_moved)
@@ -269,6 +279,11 @@ class GoGolf():
         #If player wants to set up a new shot
         if not self.__currentlevel.get_control_backgorund():
 
+            if pygame.mouse.get_pressed()[0] and not player_ball.get_clicked():
+                self.__currentlevel.set_control_background(True)
+                
+
+
             #Let player set up the shot and shoot it
             if not player_ball.get_clicked():
                 player_ball.aim(player)
@@ -285,7 +300,7 @@ class GoGolf():
     def level_controls(self):
         """Level control for scrolling left and right, ready to shoot and a muitlplier
         to move faster """
-
+        
         if self.__currentlevel.get_control_backgorund():
 
             keys = pygame.key.get_pressed()
@@ -312,6 +327,7 @@ class GoGolf():
             #Player ready to swing
             if keys[pygame.K_RETURN]:
                 self.__currentlevel.set_control_background(False)
+
 
 
     def LoadWorld(self):
@@ -368,13 +384,16 @@ class World():
 
 
     def draw(self, distance_moved):
-        for block in self.obstacle_list:
-            x = block.get_rect().x // TILE_SIZE  # Calculate the x-coordinate in terms of tiles
-            if (x * TILE_SIZE + distance_moved) < SCREEN_WIDTH + 1*TILE_SIZE and (x * TILE_SIZE + distance_moved) > -1 * TILE_SIZE:
-                temp = block.get_rect().x
-                screen.blit(block.get_img(), (temp + distance_moved, block.get_rect().y))
-                if block.get_block_type() == "goal":
-                    block.Display_Goal(distance_moved)
+        x_coordinates = np.array([block.get_rect().x // TILE_SIZE for block in self.obstacle_list])
+
+        mask = (x_coordinates * TILE_SIZE + distance_moved >= -TILE_SIZE) & (x_coordinates * TILE_SIZE + distance_moved <= SCREEN_WIDTH + TILE_SIZE)
+        visible_blocks = np.array(self.obstacle_list)[mask]
+
+        for block in visible_blocks:
+            temp = block.get_rect().x
+            screen.blit(block.get_img(), (temp + distance_moved, block.get_rect().y))
+            if block.get_block_type() == "goal":
+                block.Display_Goal(distance_moved)
 
 
     def level_completed(self):
@@ -847,8 +866,8 @@ class Golf_Ball():
         Acceleration = [sum(x) for x in zip(GravityAcceleration, self.__AirResistanceAcceleration)]
 
         #Updates velocity
-        self.__VelocityOfBall[0] += Acceleration[0] / self.__BALL_MASS * update_step
-        self.__VelocityOfBall[1] += Acceleration[1] / self.__BALL_MASS * update_step
+        self.__VelocityOfBall[0] += Acceleration[0] // self.__BALL_MASS * update_step
+        self.__VelocityOfBall[1] += Acceleration[1] // self.__BALL_MASS * update_step
 
         #Updates Ball postion
         self.__BallPostion[0] += self.__VelocityOfBall[0] *update_step
@@ -861,7 +880,7 @@ class Golf_Ball():
 
     def trajecotry(self, obstacles, distance, player):
 
-        update_step = 0.025
+        update_step = 0.027
 
         #Checks if the player has took the shot
         if self.__clicked:
