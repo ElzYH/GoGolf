@@ -8,6 +8,7 @@ import sqlite3
 from random import randint
 import numpy as np
 
+
 pygame.init()
 
 LOGGER = logging.getLogger(f"{__name__}")
@@ -20,7 +21,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH,SCREEN_HEIGHT))
 
 #FPS
 clock = pygame.time.Clock()
-FPS = 200
+FPS = 100
 
 pygame.display.set_caption("Go Golf")
 #icon = pygame.image.load('Assets/uno_icon.ico')
@@ -118,6 +119,7 @@ class GoGolf():
         self.__current_player.get_golfball().set_ball_postion(self.__world.get_spawn_location()[0] + self.__distance_moved, self.__world.get_spawn_location()[1])
         self.__currentlevel.set_control_background(True)
 
+
     def __timer(self):
         """Timer that uses FPS as timer, meaning timer is linked
         to the game and not the computer"""
@@ -155,7 +157,36 @@ class GoGolf():
             else:
                 if not self.__random:
                     self.__save_game_records(self, level)
+                self.__scoreboard()
                 self.__game_running = False
+
+        
+    def __scoreboard(self):
+        self.__currentlevel.set_scroll_background(2000)
+        time = 5
+        count = 0
+        x_pos = -300
+        game_result = gogolf_lilbray.Text()
+        while time < 15:
+            count += 1
+            if count > clock.get_fps():
+                self.__current_player.add_to_time(1)
+                count = 0
+                time+=1
+            
+            self.__currentlevel.create_background()
+            self.__currentlevel.set_scroll_background(self.__currentlevel.get_scroll_background() + 5)
+
+            x_pos +=2
+            game_result.set_all(f"Score: {self.__current_player.get_total_score()}", "#ff8500", P2, 30, x_pos, 200)
+            game_result.draw_text(screen)
+            game_result.set_all(f"Strokes: {self.__current_player.get_total_stokes()}", "#ff8500", P2, 30, x_pos, 400)
+            game_result.draw_text(screen)
+            game_result.set_all(f"Time: {str(self.__current_player.get_total_time()//60).zfill(2):1}:{str(self.__current_player.get_total_time() % 60).zfill(2):1}", "#ff8500", P2, 30, x_pos , 600)
+            game_result.draw_text(screen)
+            self.EventHandler()
+            
+
 
 
     def PlayGame(self, level):
@@ -678,7 +709,7 @@ class Golf_Ball():
         self.__GOLFBALL_rect.x = self.__BallPostion[0] #Rectangele x postion
         self.__GOLFBALL_rect.y = self.__BallPostion[1] #Rectangele y postion
         self.__GRAVITY = 10 #Gravity
-        self.__BALL_MASS = 0.045 #The weight of the ball
+        self.__BALL_MASS = 0.037 #The weight of the ball
         self.__AirResistance = 0.005 #The amount air resitance
         self.__BallSpeed = 0 #The power of the swing
         self.__BallAngle = 0 #The angle of the swing
@@ -738,22 +769,22 @@ class Golf_Ball():
     def __handle_y_collsion(self, tile, distance):
         """Handle y collsions of the ball with tiles """
 
-        if abs(self.__VelocityOfBall[1]) > 75 and  abs(self.__VelocityOfBall[0]) > 0.01:
+        if abs(self.__VelocityOfBall[1]) > 75 and  abs(self.__VelocityOfBall[0]) > 0.1:
             #Affects the game y ball velocity (flips it to going opposite way and losing energy)
             self.__VelocityOfBall[1] = -self.__VelocityOfBall[1]  / 4
 
             #Affects the game x ball velocity
-            if abs(self.__VelocityOfBall[0]  / 6)*self.__direction > 0:
+            if abs(self.__VelocityOfBall[0]  / 6)*self.__direction > 0.1:
                 self.__VelocityOfBall[0] -= abs(self.__VelocityOfBall[0]  / 6)*self.__direction
 
 
-        elif abs(self.__VelocityOfBall[1]) > 0.2 and  abs(self.__VelocityOfBall[0]) > 0.01:
+        elif abs(self.__VelocityOfBall[1]) > 0.2 and  abs(self.__VelocityOfBall[0]) > 0.1:
             
             #Affects the game y ball velocity (flips it to going opposite way and losing energy)
             self.__VelocityOfBall[1] = -self.__VelocityOfBall[1]  / 3
 
             #Affects the game x ball velocity
-            if abs(self.__VelocityOfBall[0]  / 6)*self.__direction > 0:
+            if abs(self.__VelocityOfBall[0]  / 6)*self.__direction > 0.1:
                 self.__VelocityOfBall[0] -= abs(self.__VelocityOfBall[0]  / 5.5)*self.__direction
             
 
@@ -779,7 +810,7 @@ class Golf_Ball():
         """Handle goal collsions of the ball with goal tiles """
 
         #Checks if ball gone in the hole
-        if tile.get_rect().y - TILE_SIZE*update_step < self.__GOLFBALL_rect.y and tile.get_goal_active():
+        if tile.get_rect().y - TILE_SIZE*0.15 < self.__GOLFBALL_rect.y and tile.get_goal_active():
 
             tile.set_goal_active(False)
             self.__reset_ball_location(distance)
@@ -821,7 +852,7 @@ class Golf_Ball():
         else:
 
             #CHECK Y collsions
-            if tile.get_rect().colliderect(-distance + self.__GOLFBALL_rect.x , self.__GOLFBALL_rect.y + (self.__VelocityOfBall[1]*update_step) + 0.2, self.__GOLFBALL_image.get_width(), self.__GOLFBALL_image.get_height()):
+            if tile.get_rect().colliderect(-distance + self.__GOLFBALL_rect.x , self.__GOLFBALL_rect.y + (self.__VelocityOfBall[1]*update_step) + 1, self.__GOLFBALL_image.get_width(), self.__GOLFBALL_image.get_height()):
                 self.__handle_y_collsion(tile, distance)
 
             #CHECK X collsions
@@ -856,42 +887,33 @@ class Golf_Ball():
         self.__VelocityOfBall = [XVelocity, YVelocity]
         
         
-
+    
     def update_flight(self, update_step):
         """Update the ball flight path"""
 
-        #Acceleration Calucation
-        GravityAcceleration = [0, self.__GRAVITY] #[x,y]
-        self.__AirResistanceAcceleration = [-self.__AirResistance * self.__VelocityOfBall[i] for i in range(0, len(self.__VelocityOfBall))]
-        Acceleration = [sum(x) for x in zip(GravityAcceleration, self.__AirResistanceAcceleration)]
+        # Acceleration Calculation
+        gravity_acceleration = np.array([0, self.__GRAVITY])
+        air_resistance_acceleration = -self.__AirResistance * np.array(self.__VelocityOfBall)
+        acceleration = gravity_acceleration + air_resistance_acceleration
 
-        #Updates velocity
-        self.__VelocityOfBall[0] += Acceleration[0] // self.__BALL_MASS * update_step
-        self.__VelocityOfBall[1] += Acceleration[1] // self.__BALL_MASS * update_step
+        # Updates velocity using NumPy array operations
+        self.__VelocityOfBall += acceleration / self.__BALL_MASS * update_step
 
-        #Updates Ball postion
-        self.__BallPostion[0] += self.__VelocityOfBall[0] *update_step
-        self.__BallPostion[1] += self.__VelocityOfBall[1] *update_step
+        # Updates Ball position using NumPy array operations
+        self.__BallPostion += self.__VelocityOfBall * update_step
 
-        #Updates Ball rectangle postion 
-        self.__GOLFBALL_rect.x = self.__BallPostion[0]
-        self.__GOLFBALL_rect.y = self.__BallPostion[1]
-
+        # Updates Ball rectangle position
+        self.__GOLFBALL_rect.x, self.__GOLFBALL_rect.y = self.__BallPostion.astype(int)
 
     def trajecotry(self, obstacles, distance, player):
+        update_step = 0.028
 
-        update_step = 0.027
-
-        #Checks if the player has took the shot
         if self.__clicked:
             self.update_flight(update_step)
 
-            #If ball is still moving, check for collsions
             if not self.__stop:
-
-                #Loops for all tiles/blocks in obstacles_list in world object 
                 for tile in obstacles:
-                    self.__collison(tile, distance, update_step, player )
+                    self.__collison(tile, distance, update_step, player)
 
 
     def display_ball(self):

@@ -386,8 +386,10 @@ class MainMenu():
                 self.__game = gogolf_gui.GoGolf(username, 5, False)
                 self.__game.PlayGame(5)
         if self.__random_hole.draw(screen):
-            self.__game = gogolf_gui.GoGolf(username, 3, True)
-            self.__game.PlayGame(3)
+            
+            self.__game = gogolf_gui.GoGolf(username, 1, True)
+            self.__game.PlayGame(1)
+            
         if self.__back.draw(screen):
             self.__menu_choice = ""
 
@@ -471,7 +473,6 @@ class MainMenu():
 
 
         for i in range(-15 + self.__change_range, self.__change_range):
-            print(i)
             if i < len(player_positions):
                 self.__leaderboard_text.set_all(leader_board[i][0], BLACK, P2, 20, lb_x_pos, lb_y_pos)
                 self.__leaderboard_text.draw_text(screen)

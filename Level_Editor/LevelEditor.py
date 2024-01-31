@@ -270,7 +270,6 @@ class LevelEditor():
             try:
                 pickle_in = open(f'Levels/level{self.__current_level.Get_Level()}_data', 'rb')
                 self.__total_scroll = 0
-                self.__background_scroll = 0
                 self.__current_level.Set_WorldData([])
                 self.__current_level.Set_WorldData(pickle.load(pickle_in))
                 LOGGER.info(f"Level {self.__current_level.Get_Level()} has been loaded ")
@@ -281,10 +280,8 @@ class LevelEditor():
                 self.__DrawEditor()
                 text.draw_text()
                 self.__EventHandler()
-                pygame.time.wait(1000)
+                pygame.time.wait(500)
             
-            
-
 
 
 
