@@ -156,7 +156,7 @@ class GoGolf():
                 self.__change_level()
             else:
                 if not self.__random:
-                    self.__save_game_records(self, level)
+                    self.__save_game_records(level)
                 self.__scoreboard()
                 self.__game_running = False
 
