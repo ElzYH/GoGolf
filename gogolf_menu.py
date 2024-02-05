@@ -36,6 +36,16 @@ score_button = pygame.image.load('Assests/score.png')
 time_button = pygame.image.load('Assests/time.png')
 strokes_button = pygame.image.load('Assests/strokes.png')
 random_button = pygame.image.load('Assests/random.png')
+change_user_button =  pygame.image.load('Assests/change_user.png')
+skins_button =  pygame.image.load('Assests/skins.png')
+buy_skins_button = pygame.image.load('Assests/buy_skins.png')
+select_skins_button = pygame.image.load('Assests/select_skin.png')
+
+golf_names = ["white","pink","blue","orange","red","gold","black"]
+
+golf_skins = [pygame.image.load(f'Assests/{skin}.png') for skin  in golf_names]
+
+
 
 
 sign_up_button = pygame.image.load('Assests/sign_up.png')
@@ -72,6 +82,8 @@ def EventHandler():
     clock.tick(FPS)
 
 class Tee_Box():
+    """Creates object for the game to start """
+
     def __init__(self):
         self.__run = True
         self.__BG = Background()
@@ -80,15 +92,21 @@ class Tee_Box():
         self.__menu = MainMenu(self.__BG)
 
     def Game(self):
+        """Main Handler of the the program, where the start menu held
+        and main menu"""
+
         while self.__run:
 
             if not self.__start_menu.get_running():
                 self.__start_menu.start_menu()
 
             if self.__start_menu.get_running():
-                self.__enter = True
-                username = self.__account.account_menu()
-                self.__menu.main_menu(self.__start_menu, username)
+                self.__menu.main_menu(self.__start_menu, self.__account.account_menu())
+                if not self.__menu.get_in_menu():
+                    self.__start_menu.set_running(False)
+                    self.__account.set_in_menu(True)
+                    self.__account.set_menu("")
+
 
             EventHandler()
 
@@ -136,12 +154,15 @@ class StartScreen():
         self.floatiing_logo(SCREEN_WIDTH//2- 300, (SCREEN_HEIGHT//2 - 280))
         self.__text.set_all("Press Enter To Start", ORANGE, P2, 40, SCREEN_WIDTH//2 - 260, (sin(self.__y)*10) + 450)
         self.__text.draw_text(screen)
-        if keys[pygame.K_RETURN]:
+        if keys[pygame.K_RETURN] or pygame.mouse.get_pressed()[0]:
             self.__start_running =  True
 
 
     def get_running(self):
         return self.__start_running
+
+    def set_running(self, value):
+        self.__start_running = value
 
     def floatiing_logo(self, x, y):
         self.sin_counter()
@@ -169,7 +190,7 @@ class User():
         self.__display_error = gogolf_lilbray.Text()
         self.__item_box_text = gogolf_lilbray.Text()
 
-    def __buttons(self, events):
+    def __account_buttons(self, events):
         if self.__login.draw(screen):
             self.__username_text.clear_text()
             self.__password_text.clear_text()
@@ -260,6 +281,27 @@ class User():
             c.execute(f"INSERT INTO UserRegister (Username, Password) VALUES ('{self.__username.lower()}', '{self.__password}')")
             c.execute(f"""INSERT INTO HOLE3NUMBER (Username) VALUES ('{self.__username.lower()}')""")
             c.execute(f"""INSERT INTO HOLE5NUMBER (Username) VALUES ('{self.__username.lower()}')""")
+            
+            last_inserted_id = []
+
+            # Insert into SKINS table
+            c.execute(f"""INSERT INTO SKINS (white, pink, blue, orange, red, gold, black) 
+                        VALUES ('1', '0', '0', '0', '0', '0', '0')""")
+            last_inserted_id.append(c.lastrowid)
+
+            # Insert into WALLET table
+            c.execute(f"""INSERT INTO WALLET (coins) 
+                        VALUES ('0')""")
+            last_inserted_id.append(c.lastrowid)
+
+            # Insert into PLAYER_SKINS table
+            c.execute(f"""INSERT INTO PLAYER_SKINS (Username, SKINID, COINID) 
+                        VALUES ('{self.__username.lower()}', '{last_inserted_id[0]}', '{last_inserted_id[1]}')""")
+
+
+
+            
+
 
         
         self.__clear_info()
@@ -283,7 +325,7 @@ class User():
             self.__display_error.draw_text(screen)
 
             if self.__menu_choice == "":
-                self.__buttons(events)
+                self.__account_buttons(events)
 
             if self.__menu_choice == "login":
                 self.__login_into_account(events)
@@ -304,6 +346,10 @@ class User():
 
 
     def __if_username_exist(self, conn):
+        """Checks if username exist within the database, if it doesnt
+        an error flag will shown on the screen """
+
+
         c = conn.cursor()
         username_sql = c.execute(f'SELECT Username FROM UserRegister WHERE Username IS "{self.__username}"')
         
@@ -316,8 +362,10 @@ class User():
         return username_sql
 
 
-
     def __if_account_exist(self):
+        """Check if user trying to login infomation is correct. 
+        This consit of checking for user username and password"""
+
         conn = sqlite3.connect("database/GoGolfDB.db")
         c = conn.cursor()
         username_sql = self.__if_username_exist(conn)
@@ -337,9 +385,10 @@ class User():
         self.__error = "username/password is not correct"
         conn.close()     
         return False
-
     
     def __clear_info(self):
+        """Sets the username abd password of the object to blank"""
+
         self.__username = ""
         self.__password = ""
             
@@ -353,16 +402,23 @@ class User():
         pygame.display.update()
         clock.tick(FPS)
 
+    
+    def set_in_menu(self, value):
+        self.__InMenu = value
 
+    def set_menu(self, value):
+        self.__menu_choice = value
 
 
 class MainMenu():
     def __init__(self, bg):
-        self.__bg = bg
-        self.__InMenu = True
+        self.__bg = bg #Backgorund
+        self.__InMenu = True #If in menu
         self.__play = gogolf_lilbray.Button(50, 50, play_button, 0.5)
         self.__lb = gogolf_lilbray.Button(50, 200, lb_buttons, 0.5)
-        self.__quit = gogolf_lilbray.Button(50, 350, quit_buttons, 0.5)
+        self.__change_user = gogolf_lilbray.Button(50, 350, change_user_button, 0.5)
+        self.__skins = gogolf_lilbray.Button(50, 500, skins_button, 0.5)
+        self.__quit = gogolf_lilbray.Button(50, 650, quit_buttons, 0.5)
         self.__three_hole = gogolf_lilbray.Button(50, 50, three_hole_button, 0.5)
         self.__five_hole = gogolf_lilbray.Button(50, 200, five_hole_button, 0.5)
         self.__random_hole = gogolf_lilbray.Button(50, 350, random_button, 0.5)
@@ -370,24 +426,53 @@ class MainMenu():
         self.__strokes_lb = gogolf_lilbray.Button(50, 50, strokes_button, 0.5)
         self.__score_lb = gogolf_lilbray.Button(50, 200, score_button, 0.5)
         self.__time_lb = gogolf_lilbray.Button(50, 350, time_button, 0.5)
-        self.__game = None #temp
-        self.__menu_choice = ""
-        self.__leaderboard_filter = "SCORE"
-        self.__leaderboard_hole = None
-        self.__leaderboard_text = gogolf_lilbray.Text()
-        self.__change_range = 15
+        self.__buy_skins = gogolf_lilbray.Button(50, 50, buy_skins_button, 0.5)
+        self.__select_skins = gogolf_lilbray.Button(50, 200, select_skins_button, 0.5)
+        self.__game = None #GoGolf Object
+        self.__menu_choice = "" #Which menu to access
+        self.__leaderboard_filter = "SCORE" #Filter for leaderbaord, defaults to SCORE
+        self.__leaderboard_hole = None #Which collections of holes results to display
+        self.__leaderboard_text = gogolf_lilbray.Text() 
+        self.__change_range = 15 #Range of user to display
+        self.__skin_buttons = self.__set_skin_buttons()
+        self.__GOLFBALL = self.__GOLFBALL_SELECT("white")
+        self.__prices_text = gogolf_lilbray.Text()
+        self.__wallet_text = gogolf_lilbray.Text()
 
+    def __set_skin_buttons(self):
+        x = 400
+        y = 100
+        col_count = 0
+        temp_skins_buttons = []
+        for i in range(len(golf_skins)):
+            temp_skins_buttons.append(gogolf_lilbray.Button(x, y, golf_skins[i], 0.5))
+            x+=300
+            col_count+=1
+            if col_count > 2:
+                x = 400
+                y+= 150
+                col_count = 0
+        return temp_skins_buttons
+
+
+
+
+    def __GOLFBALL_SELECT(self, value):
+        return pygame.image.load(f'Assests/{value}_ball.png')
     
     def __holes(self, username):
+        """Game Select for what type for game the user want to play """
+
         if self.__three_hole.draw(screen):
-                self.__game = gogolf_gui.GoGolf(username, 3, False)
+                self.__game = gogolf_gui.GoGolf(username, 3, False, self.__GOLFBALL)
                 self.__game.PlayGame(3)
+
         if self.__five_hole.draw(screen):
-                self.__game = gogolf_gui.GoGolf(username, 5, False)
+                self.__game = gogolf_gui.GoGolf(username, 5, False, self.__GOLFBALL)
                 self.__game.PlayGame(5)
+
         if self.__random_hole.draw(screen):
-            
-            self.__game = gogolf_gui.GoGolf(username, 1, True)
+            self.__game = gogolf_gui.GoGolf(username, 1, True, self.__GOLFBALL)
             self.__game.PlayGame(1)
             
         if self.__back.draw(screen):
@@ -395,17 +480,27 @@ class MainMenu():
 
 
 
-    def __buttons(self):
+    def __main_menu_button(self):
+        """Main menu buttons to play the game, access the leaderboard, quit """
+
         if self.__play.draw(screen):
             self.__menu_choice = "play"
 
         if self.__lb.draw(screen):
             self.__menu_choice = "leaderboard_hole_select"
 
+        if self.__change_user.draw(screen):
+            self.__menu_choice = "back"
+
+        if self.__skins.draw(screen):
+            self.__menu_choice = "skins"
+
         if self.__quit.draw(screen):
             sys.exit()
 
     def __leaderboard_holes(self):
+        """Leaderboard game mode button select """
+
         if self.__three_hole.draw(screen):
             self.__menu_choice = "leaderboard"
             self.__leaderboard_hole = 3
@@ -419,34 +514,31 @@ class MainMenu():
             self.__menu_choice = ""
 
     def __filter_options(self):
+        """Filter options buttons for the leaderboard """
+        
         if self.__strokes_lb.draw(screen):
             self.__leaderboard_filter = "STROKES"
+
         if self.__score_lb.draw(screen):
             self.__leaderboard_filter = "SCORE"
+
         if self.__time_lb.draw(screen):
             self.__leaderboard_filter = "TOTAL_TIME"
+
         if self.__back.draw(screen):
             self.__menu_choice = "leaderboard_hole_select"
 
 
-    def __leaderboard(self):
-        self.__filter_options()
-        screen.blit(leaderboard_wall, (SCREEN_WIDTH//2 - 50, 75))
-        conn = sqlite3.connect("database/GoGolfDB.db")  # Fix the path to the database
+    def __ASC_DSC(self):
+        """If data should repsented ascending or descending """
 
         if self.__leaderboard_filter == "STROKES" or self.__leaderboard_filter == "TOTAL_TIME":
-            order = "ASC"
+            return "ASC"
         else:
-            order = "DESC"
+            return "DESC"
 
-        c = conn.cursor()
-        c.execute(f"""SELECT HOLE{self.__leaderboard_hole}NUMBER.Username, HOLES{self.__leaderboard_hole}.{self.__leaderboard_filter}
-        FROM HOLE{self.__leaderboard_hole}NUMBER INNER JOIN HOLES{self.__leaderboard_hole} 
-        ON HOLE{self.__leaderboard_hole}NUMBER.HOLE{self.__leaderboard_hole}ID == HOLES{self.__leaderboard_hole}.HOLES{self.__leaderboard_hole}ID
-        ORDER BY HOLES{self.__leaderboard_hole}.{self.__leaderboard_filter} {order}
-        """)
-        player_positions = [i for i in c.fetchall()]
-        leader_board = []
+    def __leaderboar_range_changer(self):
+        """Changes the range of data to be drawn on the screen"""
 
         keys =  pygame.key.get_pressed()
         if keys[pygame.K_d]:
@@ -454,25 +546,13 @@ class MainMenu():
 
         if keys[pygame.K_a] and self.__change_range > 15:
             self.__change_range -= 15
-        
-        for i in range(0, len(player_positions)):
-            if self.__leaderboard_filter == "TOTAL_TIME":
-                self.__leaderboard_filter = "TIME"
-            pos = f"{str(i+1)}.{"":3}"
-            string_pos_name = f"{player_positions[i][0]:6}"
-            string_result = f"{self.__leaderboard_filter} : {player_positions[i][1]:6}"
-            leader_board.append((pos, string_pos_name, string_result))
 
-        conn.close()
 
-        lb_y_pos = 125
-        lb_x_pos = SCREEN_WIDTH // 2
-
-        if self.__leaderboard_filter == "TIME":
-                self.__leaderboard_filter = "TOTAL_TIME"
-
+    def __draw_leaderboard(self, player_positions, leader_board, lb_x_pos, lb_y_pos):
+        """Display Users leaderboard results onto the GUI """
 
         for i in range(-15 + self.__change_range, self.__change_range):
+
             if i < len(player_positions):
                 self.__leaderboard_text.set_all(leader_board[i][0], BLACK, P2, 20, lb_x_pos, lb_y_pos)
                 self.__leaderboard_text.draw_text(screen)
@@ -485,18 +565,161 @@ class MainMenu():
                 break
 
 
+    def __leaderboard(self):
+        """Leaderboard menu"""
 
+        self.__filter_options()
+        screen.blit(leaderboard_wall, (SCREEN_WIDTH//2 - 50, 75))
+        conn = sqlite3.connect("database/GoGolfDB.db")  # Fix the path to the database
+
+        order = self.__ASC_DSC()
+
+        c = conn.cursor()
+        c.execute(f"""SELECT HOLE{self.__leaderboard_hole}NUMBER.Username, HOLES{self.__leaderboard_hole}.{self.__leaderboard_filter}
+        FROM HOLE{self.__leaderboard_hole}NUMBER INNER JOIN HOLES{self.__leaderboard_hole} 
+        ON HOLE{self.__leaderboard_hole}NUMBER.HOLE{self.__leaderboard_hole}ID == HOLES{self.__leaderboard_hole}.HOLES{self.__leaderboard_hole}ID
+        ORDER BY HOLES{self.__leaderboard_hole}.{self.__leaderboard_filter} {order}
+        """)
+
+        player_positions = [i for i in c.fetchall()]
+        leader_board = []
+        conn.close()
+
+        self.__leaderboar_range_changer()
+        
+        for i in range(0, len(player_positions)):
+            if self.__leaderboard_filter == "TOTAL_TIME":
+                self.__leaderboard_filter = "TIME"
+            pos = f"{str(i+1)}.{"":3}"
+            string_pos_name = f"{player_positions[i][0]:6}"
+            string_result = f"{self.__leaderboard_filter} : {player_positions[i][1]:6}"
+            leader_board.append((pos, string_pos_name, string_result))
+
+        if self.__leaderboard_filter == "TIME":
+                self.__leaderboard_filter = "TOTAL_TIME"
+
+
+        self.__draw_leaderboard(player_positions, leader_board, SCREEN_WIDTH // 2, 125)
+
+
+    def __skins_menu(self):
+        """Skins"""
+        
+        if self.__select_skins.draw(screen):
+            self.__menu_choice = "select_skins"
+
+        if self.__buy_skins.draw(screen):
+            self.__menu_choice = "buy_skins"
+
+        if self.__back.draw(screen):
+            self.__menu_choice = ""
+
+
+    def __buy_menu(self, username):
+        screen.fill(BLUE)
+
+        if self.__back.draw(screen):
+            self.__menu_choice = "skins"
+
+        conn = sqlite3.connect("database/GoGolfDB.db")
+        c = conn.cursor()
+
+        x = 400
+        y = 225
+        count = 0
+
+        c.execute(f"""SELECT WALLET.coins, PLAYER_SKINS.COINID, PLAYER_SKINS.SKINID
+                FROM PLAYER_SKINS INNER JOIN WALLET
+                ON PLAYER_SKINS.COINID == WALLET.COINID
+                WHERE PLAYER_SKINS.Username = '{username}'""")
+        coinid = c.fetchone()
+
+
+
+        
+        for button_index in range(len(self.__skin_buttons)):
+            self.__prices_text.set_all(f"Price: {button_index*82}", BLACK, P2, 14, x, y)
+            x+= 300
+            count += 1
+            if count > 2:
+                x = 400
+                y+= 150
+                count = 0
+
+            self.__prices_text.draw_text(screen)
+            
+
+
+            if self.__skin_buttons[button_index].draw(screen):
+                c.execute(f"""SELECT {golf_names[button_index]}
+                FROM SKINS
+                WHERE SKINID IS {coinid[2]}""")
+                skinid = c.fetchone()
+                skinid = skinid[0]
+
+                if (coinid[0] - (button_index*82)) > 0 and skinid == 0:
+                    c.execute(f"""UPDATE WALLET
+                        SET coins = {coinid[0] - (button_index*82)}
+                        WHERE COINID = {coinid[1]}""")
+                    conn.commit()
+
+                    c.execute(f"""UPDATE SKINS 
+                    SET {golf_names[button_index]} = 1
+                    WHERE SKINID = {coinid[2]}""")
+                    conn.commit()
+
+            self.__wallet_text.set_all(f"Coins: {coinid[0]}", BLACK, P2, 15, SCREEN_WIDTH - 100, 20)
+            self.__wallet_text.draw_text(screen)
+        conn.close()
+ 
+                    
+
+                
+    
+
+
+    def __select_menu(self, username):
+        if self.__back.draw(screen):
+            self.__menu_choice = "skins"
+
+        conn = sqlite3.connect("database/GoGolfDB.db")
+        c = conn.cursor()
+
+        c.execute(f"""SELECT SKINS.*
+                FROM PLAYER_SKINS INNER JOIN SKINS
+                ON PLAYER_SKINS.SKINID == SKINS.SKINID
+                WHERE PLAYER_SKINS.Username = '{username}'
+         """)
+        skins_owned = c.fetchone()
+
+        for button_index in range(1, len(self.__skin_buttons) + 1):
+            if skins_owned[button_index] == 1:
+                if self.__skin_buttons[button_index-1].draw(screen):
+                    self.__GOLFBALL = self.__GOLFBALL_SELECT(golf_names[button_index-1])
+
+        conn.commit()
+        conn.close()
+
+        
+        
+
+
+        
     def main_menu(self, logo, username):
+        """Main Menu"""
+        self.__InMenu = True
+        self.__menu_choice = ""
         while self.__InMenu:
             events = pygame.event.get()
 
             self.__bg.draw_background()
             self.__bg.side_bar()
             
-            if not self.__menu_choice == "leaderboard":
+            if not self.__menu_choice in ["leaderboard", "buy_skins", "select_skins"]:
                 logo.floatiing_logo(SCREEN_WIDTH//2 - 120, SCREEN_HEIGHT//2 - 200)
+
             if self.__menu_choice == "":
-                self.__buttons()
+                self.__main_menu_button()
 
             if self.__menu_choice == "play":
                 self.__holes(username)
@@ -506,10 +729,25 @@ class MainMenu():
 
             if self.__menu_choice == "leaderboard":
                 self.__leaderboard()
+
+            if self.__menu_choice == "skins":
+                self.__skins_menu()
+
+            if self.__menu_choice == "buy_skins":
+                self.__buy_menu(username)
+
+            if self.__menu_choice == "select_skins":
+                self.__select_menu(username)
+
+            if self.__menu_choice == "back":
+                self.__InMenu = False
+
                 
-            
-    
             self.EventHandler(events)
+
+
+    def get_in_menu(self):
+        return self.__InMenu
         
     def EventHandler(self, events):
         for event in events:

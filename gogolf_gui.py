@@ -9,7 +9,7 @@ from random import randint
 import numpy as np
 
 
-pygame.init()
+#pygame.init()
 
 LOGGER = logging.getLogger(f"{__name__}")
 
@@ -30,7 +30,7 @@ pygame.key.set_repeat(0,0)
 
 #Load Images
 
-GOLFBALL_IMG = pygame.image.load('Assests/20.png')
+GOLFBALL_IMG = pygame.image.load('Assests/white_ball.png')
 
 
 #Image Widiths and Heights
@@ -60,9 +60,9 @@ TILE_TYPES = 21
 
 
 class GoGolf():
-    def __init__(self, username, level, random):
+    def __init__(self, username, level, random, BALL_SKIN):
         self.__game_running = True #is the game running
-        self.__current_player = Player(username) #Current player
+        self.__current_player = Player(username, BALL_SKIN) #Current player
         self.__currentlevel = Level(1) #Current level
         self.__muitplier = 1.5 #Muilplier
         self.__distance_moved = 0 #Distance moved from the start
@@ -71,6 +71,7 @@ class GoGolf():
         self.__count = -10  #Offset
         self.__random = random
         self.__world_queue = self.__create_world_queue(level)
+        self.__skin_of_golfball = BALL_SKIN
 
     def __create_world_queue(self, level):
         """Creates a Queue that hold each level"""
@@ -107,7 +108,7 @@ class GoGolf():
         self.__current_player.score_calculator(len(self.__world.get_goal_list()))
         self.__current_player.reset()
         self.__world = World()
-        self.__current_player.new_ball()
+        self.__current_player.new_ball(self.__skin_of_golfball)
         self.__currentlevel.set_World_data([])
         self.__currentlevel.next_level(1)
 
@@ -128,6 +129,26 @@ class GoGolf():
         if self.__count > clock.get_fps():
             self.__current_player.add_to_time(1)
             self.__count = 0
+
+    def __coin_update(self, value):
+        conn = sqlite3.connect("database/GoGolfDB.db")
+        c = conn.cursor()
+
+        c.execute(f"""SELECT WALLET.coins, PLAYER_SKINS.COINID 
+        FROM PLAYER_SKINS INNER JOIN WALLET
+        ON PLAYER_SKINS.COINID == WALLET.COINID
+        WHERE PLAYER_SKINS.Username = '{self.__current_player.get_username()}'""")
+        coinid = c.fetchone()
+
+        c.execute(f"""UPDATE WALLET
+              SET coins = {coinid[0] + (16* value)}
+              WHERE COINID = {coinid[1]}""")
+
+        conn.commit()
+        conn.close()
+
+        
+
 
     def __save_game_records(self, level):
         """Records game results"""
@@ -157,6 +178,7 @@ class GoGolf():
             else:
                 if not self.__random:
                     self.__save_game_records(level)
+                self.__coin_update(level)
                 self.__scoreboard()
                 self.__game_running = False
 
@@ -420,7 +442,7 @@ class World():
         mask = (x_coordinates * TILE_SIZE + distance_moved >= -TILE_SIZE) & (x_coordinates * TILE_SIZE + distance_moved <= SCREEN_WIDTH + TILE_SIZE)
         visible_blocks = np.array(self.obstacle_list)[mask]
 
-        for block in visible_blocks:
+        for block in self.obstacle_list:
             temp = block.get_rect().x
             screen.blit(block.get_img(), (temp + distance_moved, block.get_rect().y))
             if block.get_block_type() == "goal":
@@ -505,12 +527,12 @@ class Goal(Tile):
 
 
 class Player():
-    def __init__(self, username):
+    def __init__(self, username, GOLFBALL):
         self.__username = username #Player Name
         self.__totalstrokes = 0 #Total stokes
         self.__totalscore = 0 #Total score
         self.__totaltime = 0
-        self.__playergolfball = Golf_Ball() #Player ball
+        self.__playergolfball = Golf_Ball(GOLFBALL) #Player ball
         self.__time = 0
         self.__strokes = 0
 
@@ -542,8 +564,8 @@ class Player():
     def add_to_total_time(self, value):
         self.__time += value
 
-    def new_ball(self):
-        self.__playergolfball = Golf_Ball()
+    def new_ball(self, GOLFBALL):
+        self.__playergolfball = Golf_Ball(GOLFBALL)
 
     def reset(self):
         """Reset strokes and time"""
@@ -701,9 +723,9 @@ class Level():
 
 
 class Golf_Ball():
-    def __init__(self):
-        self.__GOLFBALL_image = pygame.transform.scale(GOLFBALL_IMG,(int(GOLFBALL_WIDITH*1.3), 
-        int(GOLFBALL_HEIGHT*1.3)))
+    def __init__(self, GOLFBALL):
+        self.__GOLFBALL_image = pygame.transform.scale(GOLFBALL,(int(GOLFBALL.get_width()*1.3), 
+        int(GOLFBALL.get_height()*1.3)))
         self.__BallPostion = [0,0] #[x,y] Where image of the ball postioned within the game 
         self.__GOLFBALL_rect = GOLFBALL_IMG.get_rect() #Rectangle for collison for golfball
         self.__GOLFBALL_rect.x = self.__BallPostion[0] #Rectangele x postion
@@ -810,7 +832,7 @@ class Golf_Ball():
         """Handle goal collsions of the ball with goal tiles """
 
         #Checks if ball gone in the hole
-        if tile.get_rect().y - TILE_SIZE*0.15 < self.__GOLFBALL_rect.y and tile.get_goal_active():
+        if tile.get_rect().y - TILE_SIZE*0.12 < self.__GOLFBALL_rect.y and tile.get_goal_active():
 
             tile.set_goal_active(False)
             self.__reset_ball_location(distance)

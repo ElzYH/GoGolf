@@ -26,19 +26,15 @@ def create_register_table(conn):
 
 def create_selection_table(conn):
     c = conn.cursor()
-    c.execute("""CREATE TABLE HOLE3NUMBER (
-        Username VARCHAR(8),
-        HOLE3ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        FOREIGN KEY(Username) REFERENCES UserRegister(Username),
-        FOREIGN KEY(HOLE3ID) REFERENCES HOLES3(HOLES3ID)
-    )""")
+    for hole in [3,5]:
+        c.execute(f"""CREATE TABLE HOLE{hole}NUMBER (
+            Username VARCHAR(8),
+            HOLE{hole}ID INTEGER PRIMARY KEY AUTOINCREMENT,
+            FOREIGN KEY(Username) REFERENCES UserRegister(Username),
+            FOREIGN KEY(HOLE{hole}ID) REFERENCES HOLES{hole}(HOLES{hole}ID)
+        )""")
     
-    c.execute("""CREATE TABLE HOLE5NUMBER (
-        Username VARCHAR(8),
-        HOLE5ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        FOREIGN KEY(Username) REFERENCES UserRegister(Username),
-        FOREIGN KEY(HOLE5ID) REFERENCES HOLES5(HOLES5ID)
-    )""")
+
     conn.commit()
 
 def create_holes_table(conn):
@@ -52,6 +48,41 @@ def create_holes_table(conn):
         )""")
     conn.commit()
 
+def create_skins_table(conn):
+    c = conn.cursor()
+
+    # Create SKINS table
+    c.execute("""CREATE TABLE SKINS (
+        SKINID INTEGER PRIMARY KEY AUTOINCREMENT,
+        white BOOL,
+        pink BOOL,
+        blue BOOL,
+        orange BOOL,
+        red BOOL,
+        gold BOOL,
+        black BOOL
+    )""")
+
+    # Create WALLET table
+    c.execute("""CREATE TABLE WALLET (
+        COINID INTEGER PRIMARY KEY AUTOINCREMENT,
+        coins INT
+    )""")
+
+
+    # Create PLAYER_SKINS table
+    c.execute("""CREATE TABLE PLAYER_SKINS (
+        Username VARCHAR(8),
+        SKINID INTEGER ,
+        COINID INTEGER ,
+        FOREIGN KEY(Username) REFERENCES UserRegister(Username),
+        FOREIGN KEY(SKINID) REFERENCES SKINS(SKINID),
+        FOREIGN KEY(COINID) REFERENCES WALLET(COINID)
+    )""")
+
+
+    conn.commit()
+
 
 
 def create_database():
@@ -61,6 +92,7 @@ def create_database():
     create_register_table(conn)
     create_holes_table(conn)
     create_selection_table(conn)
+    create_skins_table(conn)
     conn.commit()
     conn.close()
 
