@@ -673,8 +673,6 @@ class MainMenu():
         conn.close()
  
                     
-
-                
     
 
 
