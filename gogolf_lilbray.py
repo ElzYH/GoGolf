@@ -213,3 +213,175 @@ class stack:
       return self.__array[self.__pointer]
 
 
+  #Create a Superencipherment cipher (cipher that encrypted twice)
+  #Change letters to ASCII to binary, apply xor, convert back to denary, ceaser cipher of one of 
+  #5 keys (either 5, 28, 26, 66, 92)
+
+
+def convert_binary(value, length):
+    binary_password = ["" for i in range(length)]
+    
+    #changes it to binary
+    for i in range(length):
+        while value[i]:
+            if value[i] % 2 == 0:
+                binary_password[i] = "0" + binary_password[i]
+            else:
+                binary_password[i] = "1" + binary_password[i]
+            value[i] = value[i] //2
+    
+    return binary_password
+
+
+def xor_cipher(value, xor_key):
+    encrypted_values = []
+
+    for byte in value:
+        encrypted_byte = ""
+        for bit_index in range(len(byte)):
+            # Perform XOR operation on each bit
+            if byte[bit_index] == xor_key[bit_index]:
+                encrypted_byte += "0"
+                
+            else:
+                encrypted_byte += "1"
+        encrypted_values.append(encrypted_byte)
+
+    return encrypted_values
+
+
+
+def binary_denary_converter(value):
+    ascii_encrypted = []
+
+    for byte in value:
+        ascii_value = 0
+        # Start with the highest power of 2
+        power = len(byte) - 1
+        for bit in byte:
+            # For each bit in the byte, calculate its decimal value and add it to the total
+            if bit == "1":
+                ascii_value += 2 ** power
+            power -= 1  # Move to the next lower power of 2
+        ascii_encrypted.append(ascii_value)
+
+    return ascii_encrypted
+
+
+def ceaser_cipher(string, key):  
+    second_level = []
+
+    for value in string:
+        decrypted_value = value - key
+        if decrypted_value <= 0:
+            temp = 1110000 + decrypted_value
+        else:
+            temp = decrypted_value
+        second_level.append(chr(temp))
+    return second_level
+
+
+def xor_cipher(value, xor_key):
+    encrypted_values = []
+
+    for byte in value:
+        encrypted_byte = ""
+        for bit_index in range(len(byte)):
+            # Perform XOR operation on each bit
+            if byte[bit_index] == xor_key[bit_index]:
+                encrypted_byte += "0"
+                
+            else:
+                encrypted_byte += "1"
+        encrypted_values.append(encrypted_byte)
+
+    return encrypted_values
+
+def xor_cipher_DE(value, xor_key):
+    values = []
+    for key in range(len(value)):
+        values.append("".join(xor_cipher(value[key], xor_key[key])))
+   
+    return values
+
+
+
+def encrypter(password):
+    print("Encrpty:\n")
+    print(f"Starting value: {password}")
+
+    ascii_password = [ord(letter) for letter in password] #Changes it to ascii
+    print(f"denary {ascii_password}")
+
+    binary_password = convert_binary(ascii_password, len(ascii_password))
+    print(f"binary password before xor {binary_password}")
+
+    xor_key = "10101011" #AB
+
+    first_level =  xor_cipher(binary_password, xor_key)
+    print(f"binary password after xor {first_level}")
+
+    ascii_encrypted = binary_denary_converter(first_level)
+    print(f"ascii {[chr(i) for i in ascii_encrypted]}")
+
+    
+    key = -5 # 65001
+    second_level = ceaser_cipher(ascii_encrypted, key) #encrypt
+    second_level = "".join(second_level)
+
+    print(f"After ceaser: {second_level}\n\n")
+    
+
+    #first level xor, binary
+    return second_level
+    #dencrypter(second_level, first_level, binary_password)
+    
+
+
+
+
+#encrypted password applied with xor from a plaintext that converted to binary of user
+#typed password
+
+#so only need xor version of password with xor with non xor version.
+
+# def dencrypter(en_password, password):
+#     #decrypt
+#     xor_key_setter = "10101011"
+
+#     password = [ord(letter) for letter in password]
+#     password = convert_binary(password, len(password))
+#     xor_key = xor_cipher(password, xor_key_setter)
+    
+
+#     print(xor_key)
+    
+#     key = 5
+#     print(f"\nDecrypt: ")
+#     print(f"Encrypted password: {en_password}")
+#     print(f"denary {[ord(i) for i in en_password]}")
+
+#     second_level = ceaser_cipher([ord(i) for i in en_password], abs(key))
+    
+#     print(f"after ceaser cipher {second_level}")
+
+#     password_denary = [ord(i) for i in second_level]
+#     print(f"converted to denary {password_denary}")
+
+#     password_bianry = convert_binary(password_denary, len(password_denary))
+#     print(f"convert to binary before xor: {password_bianry}")
+
+
+#     password_bianry = xor_cipher_DE(password,  xor_key)
+#     print(f"After xor {password_bianry}")
+#     password_denary = binary_denary_converter(password_bianry)
+#     print(f"After converted to denary {password_denary}")
+#     print(f"After converted to string list {[chr(i) for i in password_denary]}")
+#     print(f"With join : {"".join([chr(i) for i in password_denary])}")
+#     return "".join([chr(i) for i in password_denary])
+
+
+
+
+# encrypter("steve")
+# dencrypter("+&5(5", "mike")

@@ -214,6 +214,10 @@ class User():
         elif self.__section == "pass":
             self.__password_setter(events)
 
+        #Create a Superencipherment cipher (cipher that encrypted twice)
+        #Change letters to ASCII to binary, apply xor, convert back to denary, ceaser cipher of one of 
+        #5 keys (either 5, 28, 26, 66, 92)
+
 
     def __username_setter(self, events):
         self.__display_username.set_text("")
@@ -259,7 +263,7 @@ class User():
     def __account_maker(self):
         conn = sqlite3.connect("database/GoGolfDB.db")
         c = conn.cursor()
-        self.__username = self.__username .replace(" ", "_")
+        self.__username = self.__username.replace(" ", "_")
         for i in range(len(self.__password)):
             if self.__password[i] == " ":
                 self.__error = "Password cannot contain spaces"
@@ -278,6 +282,7 @@ class User():
             self.__error = "Username was blank"
 
         else:
+            self.__password = gogolf_lilbray.encrypter(self.__password)
             c.execute(f"INSERT INTO UserRegister (Username, Password) VALUES ('{self.__username.lower()}', '{self.__password}')")
             c.execute(f"""INSERT INTO HOLE3NUMBER (Username) VALUES ('{self.__username.lower()}')""")
             c.execute(f"""INSERT INTO HOLE5NUMBER (Username) VALUES ('{self.__username.lower()}')""")
@@ -298,9 +303,6 @@ class User():
             c.execute(f"""INSERT INTO PLAYER_SKINS (Username, SKINID, COINID) 
                         VALUES ('{self.__username.lower()}', '{last_inserted_id[0]}', '{last_inserted_id[1]}')""")
 
-
-
-            
 
 
         
@@ -373,9 +375,11 @@ class User():
         if username_sql == self.__username:
             password_sql = c.execute(f'SELECT Password FROM UserRegister WHERE Username IS "{self.__username}"')
             try:
-                password_sql =  str("".join(c.fetchone())).lower()
+                password_sql =  str("".join(c.fetchone()))
+                self.__password = gogolf_lilbray.encrypter(self.__password)
             except TypeError:
                 pass
+            print(f"sql: {password_sql} and enter : {self.__password}")
             if password_sql == self.__password:
                 conn.close()
                 return True
@@ -668,7 +672,7 @@ class MainMenu():
                     WHERE SKINID = {coinid[2]}""")
                     conn.commit()
 
-            self.__wallet_text.set_all(f"Coins: {coinid[0]}", BLACK, P2, 15, SCREEN_WIDTH - 100, 20)
+            self.__wallet_text.set_all(f"Coins: {coinid[0]:5}", BLACK, P2, 15, SCREEN_WIDTH - 135, 20)
             self.__wallet_text.draw_text(screen)
         conn.close()
  
