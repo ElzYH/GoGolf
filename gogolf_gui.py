@@ -442,7 +442,7 @@ class World():
         mask = (x_coordinates * TILE_SIZE + distance_moved >= -TILE_SIZE) & (x_coordinates * TILE_SIZE + distance_moved <= SCREEN_WIDTH + TILE_SIZE)
         visible_blocks = np.array(self.obstacle_list)[mask]
 
-        for block in self.obstacle_list:
+        for block in visible_blocks:
             temp = block.get_rect().x
             screen.blit(block.get_img(), (temp + distance_moved, block.get_rect().y))
             if block.get_block_type() == "goal":
