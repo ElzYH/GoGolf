@@ -45,12 +45,10 @@ golf_names = ["white","pink","blue","orange","red","gold","black"]
 
 golf_skins = [pygame.image.load(f'Assests/{skin}.png') for skin  in golf_names]
 
-
-
-
 sign_up_button = pygame.image.load('Assests/sign_up.png')
 login_button = pygame.image.load('Assests/login.png')
 
+#Colours
 GREY = (245, 244, 243)
 BLUE = "#2596be"
 WHITE = "#F5FEFD"
@@ -58,28 +56,21 @@ ORANGE = "#ff8500"
 BLACK = "#000000"
 RED = "#D21404"
 
+#Backgorund widiths
 bg_w = background_1.get_width()
 bg_h = background_1.get_height()
 
+#Fonts
 WII_FONT = "Assests/Fonts/AOTFShinGoProMedium.otf"
 PIXEL_FONT = "Assests/Fonts/04B_30__.TTF"
 P2 = "Assests/Fonts/Retro Gaming.ttf"
 
+#Display Widths and Heights
 SCREEN_HEIGHT = 768 
 SCREEN_WIDTH = 1366
 screen = pygame.display.set_mode((SCREEN_WIDTH,SCREEN_HEIGHT))
 
-def EventHandler():
-    """Event Handler """
 
-    events = pygame.event.get()
-    for event in events:
-        if event.type == pygame.QUIT:
-            LOGGER.info("Quit Application")
-            sys.exit()
-
-    pygame.display.update()
-    clock.tick(FPS)
 
 class Tee_Box():
     """Creates object for the game to start """
@@ -97,18 +88,32 @@ class Tee_Box():
 
         while self.__run:
 
+            #Start Menu
             if not self.__start_menu.get_running():
                 self.__start_menu.start_menu()
 
+            #Runs account menu and then the main menu 
             if self.__start_menu.get_running():
                 self.__menu.main_menu(self.__start_menu, self.__account.account_menu())
                 if not self.__menu.get_in_menu():
+                    #Resets all menus
                     self.__start_menu.set_running(False)
                     self.__account.set_in_menu(True)
                     self.__account.set_menu("")
+            self.EventHandler()
 
 
-            EventHandler()
+    def EventHandler(self):
+        """Event Handler """
+
+        events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.QUIT:
+                LOGGER.info("Quit Application")
+                sys.exit()
+
+        pygame.display.update()
+        clock.tick(FPS)
 
                 
         
@@ -118,7 +123,8 @@ class Background():
         self.__tiles = ceil(SCREEN_WIDTH /  bg_w) + 1
 
     def draw_background(self):
-        screen.fill(BLUE)
+        """Draw menu background """
+    
         self.__scroll -= 4
         for i in range(0, self.__tiles):
             screen.blit(background_1, (i * bg_w + self.__scroll, 0))
@@ -130,6 +136,7 @@ class Background():
 
     
     def side_bar(self):
+        """Draw the game side bar for menu selection """
         pygame.draw.rect(screen, BLUE, (0, 0, 300, SCREEN_HEIGHT))
 
 
@@ -143,17 +150,30 @@ class StartScreen():
 
 
     def sin_counter(self):
+        """Changes the y coords by sin"""
+
         if abs(self.__y) % 90 == 0:
             self.__direction = -1
         self.__y +=0.05*self.__direction
+
+    def floatiing_logo(self, x, y):
+        """Draws Game Logo oscillating"""
+
+        self.sin_counter()
+        pos = (y) + (sin(self.__y)*10)
+        screen.blit(logo, (x, pos))
+        self.__text.set_all("Press Enter To Start", ORANGE, P2, 40, SCREEN_WIDTH//2 - 260, pos + 400)
         
     
     def start_menu(self):
+        """Game Start screen"""
+
         keys =  pygame.key.get_pressed()
         self.__bg.draw_background()
         self.floatiing_logo(SCREEN_WIDTH//2- 300, (SCREEN_HEIGHT//2 - 280))
         self.__text.set_all("Press Enter To Start", ORANGE, P2, 40, SCREEN_WIDTH//2 - 260, (sin(self.__y)*10) + 450)
         self.__text.draw_text(screen)
+
         if keys[pygame.K_RETURN] or pygame.mouse.get_pressed()[0]:
             self.__start_running =  True
 
@@ -164,11 +184,7 @@ class StartScreen():
     def set_running(self, value):
         self.__start_running = value
 
-    def floatiing_logo(self, x, y):
-        self.sin_counter()
-        pos = (y) + (sin(self.__y)*10)
-        screen.blit(logo, (x, pos))
-        self.__text.set_all("Press Enter To Start", ORANGE, P2, 40, SCREEN_WIDTH//2 - 260, pos + 400)
+
 
 
 class User():
@@ -191,6 +207,9 @@ class User():
         self.__item_box_text = gogolf_lilbray.Text()
 
     def __account_buttons(self, events):
+        """Draws the game Login and Sign up buttons and return an input
+        to menu choice varibale """
+
         if self.__login.draw(screen):
             self.__username_text.clear_text()
             self.__password_text.clear_text()
@@ -198,16 +217,26 @@ class User():
 
         if self.__sign_up.draw(screen):
             self.__username_text.clear_text()
+            self.__password_text.clear_text()
             self.__menu_choice = "sign_up"
 
 
-    def __user_password(self, events):
+    def __draw_input_boxes(self):
+        """Draws input boxes for user type his username and password"""
+
         pygame.draw.rect(screen, WHITE, (SCREEN_WIDTH//2- 50, SCREEN_HEIGHT//2 - 50, 300, 40))
         pygame.draw.rect(screen, WHITE, (SCREEN_WIDTH//2- 50, SCREEN_HEIGHT//2 - 5, 300, 40))
         self.__item_box_text.set_all("Username:", BLACK, P2, 20, SCREEN_WIDTH//2 - 190, SCREEN_HEIGHT//2 - 40)
         self.__item_box_text.draw_text(screen)
         self.__item_box_text.set_all("Password:", BLACK, P2, 20, SCREEN_WIDTH//2- 190, SCREEN_HEIGHT//2 + 5)
         self.__item_box_text.draw_text(screen)
+
+
+
+    def __user_password(self, events):
+        """Sets username and passwords inputs"""
+
+        self.__draw_input_boxes()
         if self.__section == "user":
             self.__username_setter(events)
 
@@ -220,6 +249,8 @@ class User():
 
 
     def __username_setter(self, events):
+        """Sets username"""
+
         self.__display_username.set_text("")
         self.__username_text.draw(events, screen, SCREEN_WIDTH//2- 50, SCREEN_HEIGHT//2 - 50, 300, 40)
 
@@ -233,6 +264,8 @@ class User():
 
 
     def __password_setter(self, events):
+        """Sets password"""
+
         self.__display_username.draw_text(screen)
         self.__password_text.draw(events, screen, SCREEN_WIDTH//2- 50, SCREEN_HEIGHT//2 - 5, 300, 40)
         self.__password_text.enter(events)
@@ -242,28 +275,68 @@ class User():
             self.__username_text.clear_text()
             self.__password_text.clear_text()
             self.__section = "user"
-            if self.__menu_choice == "login":
-                self.__menu_choice = "game"
+            self.__account_menu_options()
 
-            if self.__menu_choice == "sign_up":
-                self.__menu_choice = "creation"
+    def __account_menu_options(self):
+        """Depending on if user attmepting sign up or login it will 
+        change the mneu choice after user enter there inputs correctly
+        accordingly"""
+        
+        if self.__menu_choice == "login":
+            self.__menu_choice = "game"
+
+        if self.__menu_choice == "sign_up":
+            self.__menu_choice = "creation"
 
 
 
     def __login_into_account(self, events):
+        """Draws back button and inputs for login in """
+
         self.__go_back()
         self.__user_password(events)
 
     def __create_account(self, events):
+        """Draws back button and inputs for account creation"""
+
         self.__go_back()
         self.__user_password(events)
 
+    def __update_user_registery(self, conn):
+        """Updates the table with user infomation"""
+
+        c = conn.cursor()
+        self.__password = gogolf_lilbray.encrypter(self.__password)
+        c.execute(f"INSERT INTO UserRegister (Username, Password) VALUES ('{self.__username.lower()}', '{self.__password}')")
+        c.execute(f"""INSERT INTO HOLE3NUMBER (Username) VALUES ('{self.__username.lower()}')""")
+        c.execute(f"""INSERT INTO HOLE5NUMBER (Username) VALUES ('{self.__username.lower()}')""")
+        
+        last_inserted_id = []
+
+        # Insert into SKINS table
+        c.execute(f"""INSERT INTO SKINS (white, pink, blue, orange, red, gold, black) 
+                    VALUES ('1', '0', '0', '0', '0', '0', '0')""")
+        last_inserted_id.append(c.lastrowid)
+
+        # Insert into WALLET table
+        c.execute(f"""INSERT INTO WALLET (coins) 
+                    VALUES ('0')""")
+        last_inserted_id.append(c.lastrowid)
+
+        # Insert into PLAYER_SKINS table
+        c.execute(f"""INSERT INTO PLAYER_SKINS (Username, SKINID, COINID) 
+                    VALUES ('{self.__username.lower()}', '{last_inserted_id[0]}', '{last_inserted_id[1]}')""")
         
 
     def __account_maker(self):
+        """Checks if user has followed the account creation rules 
+        and add there data to user registery """
+
         conn = sqlite3.connect("database/GoGolfDB.db")
         c = conn.cursor()
+        #Removes spaces out of user name and repalces them with underscore
         self.__username = self.__username.replace(" ", "_")
+
         for i in range(len(self.__password)):
             if self.__password[i] == " ":
                 self.__error = "Password cannot contain spaces"
@@ -282,30 +355,8 @@ class User():
             self.__error = "Username was blank"
 
         else:
-            self.__password = gogolf_lilbray.encrypter(self.__password)
-            c.execute(f"INSERT INTO UserRegister (Username, Password) VALUES ('{self.__username.lower()}', '{self.__password}')")
-            c.execute(f"""INSERT INTO HOLE3NUMBER (Username) VALUES ('{self.__username.lower()}')""")
-            c.execute(f"""INSERT INTO HOLE5NUMBER (Username) VALUES ('{self.__username.lower()}')""")
-            
-            last_inserted_id = []
+            self.__update_user_registery(conn)
 
-            # Insert into SKINS table
-            c.execute(f"""INSERT INTO SKINS (white, pink, blue, orange, red, gold, black) 
-                        VALUES ('1', '0', '0', '0', '0', '0', '0')""")
-            last_inserted_id.append(c.lastrowid)
-
-            # Insert into WALLET table
-            c.execute(f"""INSERT INTO WALLET (coins) 
-                        VALUES ('0')""")
-            last_inserted_id.append(c.lastrowid)
-
-            # Insert into PLAYER_SKINS table
-            c.execute(f"""INSERT INTO PLAYER_SKINS (Username, SKINID, COINID) 
-                        VALUES ('{self.__username.lower()}', '{last_inserted_id[0]}', '{last_inserted_id[1]}')""")
-
-
-
-        
         self.__clear_info()
         conn.commit()
         conn.close()
@@ -350,7 +401,6 @@ class User():
     def __if_username_exist(self, conn):
         """Checks if username exist within the database, if it doesnt
         an error flag will shown on the screen """
-
 
         c = conn.cursor()
         username_sql = c.execute(f'SELECT Username FROM UserRegister WHERE Username IS "{self.__username}"')
@@ -444,6 +494,8 @@ class MainMenu():
         self.__wallet_text = gogolf_lilbray.Text()
 
     def __set_skin_buttons(self):
+        """Creates list of golg skins buttons """
+
         x = 400
         y = 100
         col_count = 0
@@ -462,6 +514,8 @@ class MainMenu():
 
 
     def __GOLFBALL_SELECT(self, value):
+        """Selects the correct image of the GOlFBAll image"""
+
         return pygame.image.load(f'Assests/{value}_ball.png')
     
     def __holes(self, username):
@@ -541,7 +595,7 @@ class MainMenu():
         else:
             return "DESC"
 
-    def __leaderboar_range_changer(self):
+    def __leaderboard_range_changer(self):
         """Changes the range of data to be drawn on the screen"""
 
         keys =  pygame.key.get_pressed()
@@ -579,18 +633,22 @@ class MainMenu():
         order = self.__ASC_DSC()
 
         c = conn.cursor()
+
+        #Access the databases to find game stats for all players
         c.execute(f"""SELECT HOLE{self.__leaderboard_hole}NUMBER.Username, HOLES{self.__leaderboard_hole}.{self.__leaderboard_filter}
         FROM HOLE{self.__leaderboard_hole}NUMBER INNER JOIN HOLES{self.__leaderboard_hole} 
         ON HOLE{self.__leaderboard_hole}NUMBER.HOLE{self.__leaderboard_hole}ID == HOLES{self.__leaderboard_hole}.HOLES{self.__leaderboard_hole}ID
         ORDER BY HOLES{self.__leaderboard_hole}.{self.__leaderboard_filter} {order}
         """)
 
+        #Player_postions is where all player stats are saves tempoarily 
         player_positions = [i for i in c.fetchall()]
         leader_board = []
         conn.close()
 
-        self.__leaderboar_range_changer()
+        self.__leaderboard_range_changer()
         
+        #Sets all strings to be drawn for each player
         for i in range(0, len(player_positions)):
             if self.__leaderboard_filter == "TOTAL_TIME":
                 self.__leaderboard_filter = "TIME"
@@ -599,15 +657,12 @@ class MainMenu():
             string_result = f"{self.__leaderboard_filter} : {player_positions[i][1]:6}"
             leader_board.append((pos, string_pos_name, string_result))
 
-        if self.__leaderboard_filter == "TIME":
-                self.__leaderboard_filter = "TOTAL_TIME"
-
-
+        if self.__leaderboard_filter == "TIME": self.__leaderboard_filter = "TOTAL_TIME"
         self.__draw_leaderboard(player_positions, leader_board, SCREEN_WIDTH // 2, 125)
 
 
     def __skins_menu(self):
-        """Skins"""
+        """Skins menu"""
         
         if self.__select_skins.draw(screen):
             self.__menu_choice = "select_skins"
@@ -618,41 +673,49 @@ class MainMenu():
         if self.__back.draw(screen):
             self.__menu_choice = ""
 
+    def __user_skin_info(self, conn, username):
+
+        c = conn.cursor()
+
+        c.execute(f"""SELECT WALLET.coins, PLAYER_SKINS.COINID, PLAYER_SKINS.SKINID
+                FROM PLAYER_SKINS INNER JOIN WALLET
+                ON PLAYER_SKINS.COINID == WALLET.COINID
+                WHERE PLAYER_SKINS.Username = '{username}'""")
+
+        return c.fetchone()
+
+
 
     def __buy_menu(self, username):
-        screen.fill(BLUE)
+        """Allows a user to purchase skins with there coins """
+
+        screen.fill(BLUE) #Hides laggyness
 
         if self.__back.draw(screen):
             self.__menu_choice = "skins"
 
         conn = sqlite3.connect("database/GoGolfDB.db")
         c = conn.cursor()
+        coinid = self.__user_skin_info(conn, username)
+
 
         x = 400
         y = 225
-        count = 0
-
-        c.execute(f"""SELECT WALLET.coins, PLAYER_SKINS.COINID, PLAYER_SKINS.SKINID
-                FROM PLAYER_SKINS INNER JOIN WALLET
-                ON PLAYER_SKINS.COINID == WALLET.COINID
-                WHERE PLAYER_SKINS.Username = '{username}'""")
-        coinid = c.fetchone()
-
-
-
+        count = 0 #Amount coloums allowed 
         
+        #Draws each price of every button and button
         for button_index in range(len(self.__skin_buttons)):
             self.__prices_text.set_all(f"Price: {button_index*82}", BLACK, P2, 14, x, y)
             x+= 300
             count += 1
+
+            #Resets coloums
             if count > 2:
                 x = 400
                 y+= 150
                 count = 0
 
             self.__prices_text.draw_text(screen)
-            
-
 
             if self.__skin_buttons[button_index].draw(screen):
                 c.execute(f"""SELECT {golf_names[button_index]}
@@ -681,12 +744,15 @@ class MainMenu():
 
 
     def __select_menu(self, username):
+        """Selects skin that the current player/user owns """
+
         if self.__back.draw(screen):
             self.__menu_choice = "skins"
 
         conn = sqlite3.connect("database/GoGolfDB.db")
         c = conn.cursor()
 
+        #Selects all data in SKINS table for that player
         c.execute(f"""SELECT SKINS.*
                 FROM PLAYER_SKINS INNER JOIN SKINS
                 ON PLAYER_SKINS.SKINID == SKINS.SKINID
@@ -694,6 +760,7 @@ class MainMenu():
          """)
         skins_owned = c.fetchone()
 
+        #Draws the buttons
         for button_index in range(1, len(self.__skin_buttons) + 1):
             if skins_owned[button_index] == 1:
                 if self.__skin_buttons[button_index-1].draw(screen):
@@ -709,6 +776,7 @@ class MainMenu():
         
     def main_menu(self, logo, username):
         """Main Menu"""
+
         self.__InMenu = True
         self.__menu_choice = ""
         while self.__InMenu:

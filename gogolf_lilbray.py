@@ -307,34 +307,31 @@ def xor_cipher_DE(value, xor_key):
 
 
 def encrypter(password):
-    print("Encrpty:\n")
-    print(f"Starting value: {password}")
+    """Encrypts data using xor key and ceaser cipher """
 
     ascii_password = [ord(letter) for letter in password] #Changes it to ascii
-    print(f"denary {ascii_password}")
 
     binary_password = convert_binary(ascii_password, len(ascii_password))
-    print(f"binary password before xor {binary_password}")
 
     xor_key = "10101011" #AB
 
+    #Applys xor key to all binary values
     first_level =  xor_cipher(binary_password, xor_key)
-    print(f"binary password after xor {first_level}")
 
+    #converts binary to denary 
     ascii_encrypted = binary_denary_converter(first_level)
-    print(f"ascii {[chr(i) for i in ascii_encrypted]}")
 
-    
-    key = -5 # 65001
-    second_level = ceaser_cipher(ascii_encrypted, key) #encrypt
-    second_level = "".join(second_level)
 
-    print(f"After ceaser: {second_level}\n\n")
-    
+    key = -5 #Ceaser cipher key 
 
-    #first level xor, binary
+    #Applies Ceaser Cipher to xor encrypted ascii values
+    second_level = ceaser_cipher(ascii_encrypted, key) 
+
+    #Turns it back into a sting
+    second_level = "".join(second_level)    
+
     return second_level
-    #dencrypter(second_level, first_level, binary_password)
+
     
 
 

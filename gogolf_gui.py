@@ -437,6 +437,8 @@ class World():
 
 
     def draw(self, distance_moved):
+        """Draws game tile """
+
         x_coordinates = np.array([block.get_rect().x // TILE_SIZE for block in self.obstacle_list])
 
         mask = (x_coordinates * TILE_SIZE + distance_moved >= -TILE_SIZE) & (x_coordinates * TILE_SIZE + distance_moved <= SCREEN_WIDTH + TILE_SIZE)
@@ -515,6 +517,8 @@ class Goal(Tile):
         self.__goal_active = True
 
     def Display_Goal(self, distance_moved):
+        """Displays that the goal is active"""
+
         if self.__goal_active == True:
             screen.blit(self._goal_post, (self.get_rect().x + distance_moved, self.get_rect().y -1*TILE_SIZE))
         
@@ -523,7 +527,6 @@ class Goal(Tile):
 
     def get_goal_active(self):
         return self.__goal_active
-
 
 
 class Player():
