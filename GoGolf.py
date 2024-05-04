@@ -18,33 +18,25 @@ LOGGER.info('Application started')
 
 def create_register_table(conn):
     c = conn.cursor()
-    c.execute("""CREATE TABLE UserRegister (
-        Username VARCHAR(8) PRIMARY KEY,
-        Password VARCHAR(8)
+    c.execute("""CREATE TABLE Users (
+        UserID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        AccountID INTEGER UNIQUE NOT NULL,
+        Username VARCHAR(8) NOT NULL UNIQUE,
+        Password VARCHAR(8) NOT NULL
     )""")
     conn.commit()
 
-def create_selection_table(conn):
-    c = conn.cursor()
-    for hole in [3,5]:
-        c.execute(f"""CREATE TABLE HOLE{hole}NUMBER (
-            Username VARCHAR(8),
-            HOLE{hole}ID INTEGER PRIMARY KEY AUTOINCREMENT,
-            FOREIGN KEY(Username) REFERENCES UserRegister(Username),
-            FOREIGN KEY(HOLE{hole}ID) REFERENCES HOLES{hole}(HOLES{hole}ID)
-        )""")
-    
-
-    conn.commit()
 
 def create_holes_table(conn):
     c = conn.cursor()
-    for table in ["HOLES3", "HOLES5"]:
+    for table in ["Holes3", "Holes5"]:
         c.execute(f"""CREATE TABLE {table} (
-            {table}ID INTEGER KEY NOT NULL,
-            SCORE INT,
-            STROKES INT,
-            TOTAL_TIME INT
+            UserID INTEGER NOT NULL,
+            Score INT,
+            Strokes INT,
+            Time INT,
+            Played DATE DEFAULT CURRENT_DATE,
+            FOREIGN KEY(UserID) REFERENCES Users(UserID)
         )""")
     conn.commit()
 
@@ -52,36 +44,27 @@ def create_skins_table(conn):
     c = conn.cursor()
 
     # Create SKINS table
-    c.execute("""CREATE TABLE SKINS (
-        SKINID INTEGER PRIMARY KEY AUTOINCREMENT,
-        white BOOL,
-        pink BOOL,
-        blue BOOL,
-        orange BOOL,
-        red BOOL,
-        gold BOOL,
-        black BOOL
-    )""")
-
-    # Create WALLET table
-    c.execute("""CREATE TABLE WALLET (
-        COINID INTEGER PRIMARY KEY AUTOINCREMENT,
-        coins INT
+    c.execute("""CREATE TABLE Skins (
+        AccountID INTEGER NOT NULL,
+        White BOOL DEFAULT 1,
+        Pink BOOL DEFAULT 0,
+        Blue BOOL DEFAULT 0,
+        Orange BOOL DEFAULT 0,
+        Red BOOL DEFAULT 0,
+        Gold BOOL DEFAULT 0,
+        Black BOOL DEFAULT 0,
+        FOREIGN KEY(AccountID) REFERENCES Users(AccountID)
     )""")
 
 
     # Create PLAYER_SKINS table
-    c.execute("""CREATE TABLE PLAYER_SKINS (
-        Username VARCHAR(8),
-        SKINID INTEGER ,
-        COINID INTEGER ,
-        FOREIGN KEY(Username) REFERENCES UserRegister(Username),
-        FOREIGN KEY(SKINID) REFERENCES SKINS(SKINID),
-        FOREIGN KEY(COINID) REFERENCES WALLET(COINID)
+    c.execute("""CREATE TABLE Player_Skins (
+        AccountID INTEGER NOT NULL,
+        Coins INT DEFAULT 0,
+        FOREIGN KEY(AccountID) REFERENCES Users(AccountID)
     )""")
-
-
     conn.commit()
+
 
 
 
@@ -91,7 +74,6 @@ def create_database():
     c = conn.cursor()
     create_register_table(conn)
     create_holes_table(conn)
-    create_selection_table(conn)
     create_skins_table(conn)
     conn.commit()
     conn.close()

@@ -85,7 +85,8 @@ class Tee_Box():
     def Game(self):
         """Main Handler of the the program, where the start menu held
         and main menu"""
-
+        
+        LOGGER.info("Game has open")
         while self.__run:
 
             #Start Menu
@@ -256,6 +257,7 @@ class User():
 
         self.__username_text.enter(events)
 
+        #If Username not blank
         if not self.__username_text.access() == "":
             self.__username = self.__username_text.access().lower()
             self.__section = "pass"
@@ -270,6 +272,7 @@ class User():
         self.__password_text.draw(events, screen, SCREEN_WIDTH//2- 50, SCREEN_HEIGHT//2 - 5, 300, 40)
         self.__password_text.enter(events)
 
+        #If Password not blank
         if not self.__password_text.access() == "":
             self.__password = self.__password_text.access()
             self.__username_text.clear_text()
@@ -302,30 +305,54 @@ class User():
         self.__go_back()
         self.__user_password(events)
 
-    def __update_user_registery(self, conn):
-        """Updates the table with user infomation"""
+    def __accountID_total(self, conn):
+        """Creates account ID"""
 
         c = conn.cursor()
+        count = 1
+        total = 0
+        for letter in self.__username:
+            total += ord(letter)
+        total += count
+
+        while True:
+            try:
+                c.execute(f"""
+                SELECT AccountID
+                FROM Users
+                WHERE AccountID = {total}""")
+                existing_account = c.fetchone()
+                if existing_account:
+                    #AccountID already exists increment total 
+                    total += 1
+                else:
+                    #AccountID doesn't exist break the loop
+                    break
+            except Exception as e:
+                print(f"Error occurred: {e}")
+                break  
+
+        return total
+
+
+    def __update_user_registery(self, conn):
+        """Updates the table with user infomation"""
+    
+        c = conn.cursor()
+        accountID = self.__accountID_total(conn)
         self.__password = gogolf_lilbray.encrypter(self.__password)
-        c.execute(f"INSERT INTO UserRegister (Username, Password) VALUES ('{self.__username.lower()}', '{self.__password}')")
-        c.execute(f"""INSERT INTO HOLE3NUMBER (Username) VALUES ('{self.__username.lower()}')""")
-        c.execute(f"""INSERT INTO HOLE5NUMBER (Username) VALUES ('{self.__username.lower()}')""")
-        
+        c.execute("INSERT INTO Users (AccountID, Username, Password) VALUES (?, ?, ?)", (accountID, self.__username.lower(), self.__password))        
         last_inserted_id = []
 
         # Insert into SKINS table
-        c.execute(f"""INSERT INTO SKINS (white, pink, blue, orange, red, gold, black) 
-                    VALUES ('1', '0', '0', '0', '0', '0', '0')""")
+        c.execute(f"""INSERT INTO Skins (AccountID) 
+                    VALUES ({accountID})""")
         last_inserted_id.append(c.lastrowid)
 
-        # Insert into WALLET table
-        c.execute(f"""INSERT INTO WALLET (coins) 
-                    VALUES ('0')""")
-        last_inserted_id.append(c.lastrowid)
 
         # Insert into PLAYER_SKINS table
-        c.execute(f"""INSERT INTO PLAYER_SKINS (Username, SKINID, COINID) 
-                    VALUES ('{self.__username.lower()}', '{last_inserted_id[0]}', '{last_inserted_id[1]}')""")
+        c.execute(f"""INSERT INTO Player_Skins (AccountID) 
+                    VALUES ({accountID})""")
         
 
     def __account_maker(self):
@@ -337,16 +364,18 @@ class User():
         #Removes spaces out of user name and repalces them with underscore
         self.__username = self.__username.replace(" ", "_")
 
+        #Checks for spaces within the passwords
         for i in range(len(self.__password)):
             if self.__password[i] == " ":
                 self.__error = "Password cannot contain spaces"
                 self.__menu_choice = ""
                 return
         try:
-            username_sql = c.execute(f'SELECT Username FROM UserRegister WHERE Username IS "{self.__username}"')
+            username_sql = c.execute(f'SELECT Username FROM Users WHERE Username IS "{self.__username}"')
             username_sql = str("".join(c.fetchone()))
         except TypeError: 
             pass #Username not in the database
+        
 
         if username_sql == self.__username: 
             self.__error = "Username taken"
@@ -403,7 +432,7 @@ class User():
         an error flag will shown on the screen """
 
         c = conn.cursor()
-        username_sql = c.execute(f'SELECT Username FROM UserRegister WHERE Username IS "{self.__username}"')
+        username_sql = c.execute(f'SELECT Username FROM Users WHERE Username IS "{self.__username}"')
         
         try:
             username_sql =  str("".join(c.fetchone())).lower()
@@ -422,14 +451,16 @@ class User():
         c = conn.cursor()
         username_sql = self.__if_username_exist(conn)
 
+        #Check if Username vaild
         if username_sql == self.__username:
-            password_sql = c.execute(f'SELECT Password FROM UserRegister WHERE Username IS "{self.__username}"')
+            password_sql = c.execute(f'SELECT Password FROM Users WHERE Username IS "{self.__username}"')
             try:
                 password_sql =  str("".join(c.fetchone()))
                 self.__password = gogolf_lilbray.encrypter(self.__password)
             except TypeError:
                 pass
-            print(f"sql: {password_sql} and enter : {self.__password}")
+
+            #Check password valid
             if password_sql == self.__password:
                 conn.close()
                 return True
@@ -484,7 +515,7 @@ class MainMenu():
         self.__select_skins = gogolf_lilbray.Button(50, 200, select_skins_button, 0.5)
         self.__game = None #GoGolf Object
         self.__menu_choice = "" #Which menu to access
-        self.__leaderboard_filter = "SCORE" #Filter for leaderbaord, defaults to SCORE
+        self.__leaderboard_filter = "Score" #Filter for leaderbaord, defaults to SCORE
         self.__leaderboard_hole = None #Which collections of holes results to display
         self.__leaderboard_text = gogolf_lilbray.Text() 
         self.__change_range = 15 #Range of user to display
@@ -494,7 +525,7 @@ class MainMenu():
         self.__wallet_text = gogolf_lilbray.Text()
 
     def __set_skin_buttons(self):
-        """Creates list of golg skins buttons """
+        """Creates list of golf skins buttons """
 
         x = 400
         y = 100
@@ -504,6 +535,8 @@ class MainMenu():
             temp_skins_buttons.append(gogolf_lilbray.Button(x, y, golf_skins[i], 0.5))
             x+=300
             col_count+=1
+
+            #Starts a new row
             if col_count > 2:
                 x = 400
                 y+= 150
@@ -575,13 +608,13 @@ class MainMenu():
         """Filter options buttons for the leaderboard """
         
         if self.__strokes_lb.draw(screen):
-            self.__leaderboard_filter = "STROKES"
+            self.__leaderboard_filter = "Strokes"
 
         if self.__score_lb.draw(screen):
-            self.__leaderboard_filter = "SCORE"
+            self.__leaderboard_filter = "Score"
 
         if self.__time_lb.draw(screen):
-            self.__leaderboard_filter = "TOTAL_TIME"
+            self.__leaderboard_filter = "Time"
 
         if self.__back.draw(screen):
             self.__menu_choice = "leaderboard_hole_select"
@@ -590,7 +623,7 @@ class MainMenu():
     def __ASC_DSC(self):
         """If data should repsented ascending or descending """
 
-        if self.__leaderboard_filter == "STROKES" or self.__leaderboard_filter == "TOTAL_TIME":
+        if self.__leaderboard_filter == "Strokes" or self.__leaderboard_filter == "Time":
             return "ASC"
         else:
             return "DESC"
@@ -614,9 +647,9 @@ class MainMenu():
             if i < len(player_positions):
                 self.__leaderboard_text.set_all(leader_board[i][0], BLACK, P2, 20, lb_x_pos, lb_y_pos)
                 self.__leaderboard_text.draw_text(screen)
-                self.__leaderboard_text.set_all(leader_board[i][1], BLACK, P2, 20, lb_x_pos + 50, lb_y_pos)
+                self.__leaderboard_text.set_all(leader_board[i][1], BLACK, P2, 20, lb_x_pos + 30, lb_y_pos)
                 self.__leaderboard_text.draw_text(screen)
-                self.__leaderboard_text.set_all(leader_board[i][2], BLACK, P2, 20, lb_x_pos + 150, lb_y_pos)
+                self.__leaderboard_text.set_all(leader_board[i][2], BLACK, P2, 20, lb_x_pos + 175, lb_y_pos)
                 self.__leaderboard_text.draw_text(screen)
                 lb_y_pos += 35
             else:
@@ -634,11 +667,11 @@ class MainMenu():
 
         c = conn.cursor()
 
-        #Access the databases to find game stats for all players
-        c.execute(f"""SELECT HOLE{self.__leaderboard_hole}NUMBER.Username, HOLES{self.__leaderboard_hole}.{self.__leaderboard_filter}
-        FROM HOLE{self.__leaderboard_hole}NUMBER INNER JOIN HOLES{self.__leaderboard_hole} 
-        ON HOLE{self.__leaderboard_hole}NUMBER.HOLE{self.__leaderboard_hole}ID == HOLES{self.__leaderboard_hole}.HOLES{self.__leaderboard_hole}ID
-        ORDER BY HOLES{self.__leaderboard_hole}.{self.__leaderboard_filter} {order}
+
+        c.execute(f"""SELECT Users.Username, Holes{self.__leaderboard_hole}.{self.__leaderboard_filter}
+        FROM Holes{self.__leaderboard_hole} INNER JOIN Users
+        ON  Holes{self.__leaderboard_hole}.UserID == Users.UserID
+        ORDER BY Holes{self.__leaderboard_hole}.{self.__leaderboard_filter} {order}
         """)
 
         #Player_postions is where all player stats are saves tempoarily 
@@ -650,14 +683,17 @@ class MainMenu():
         
         #Sets all strings to be drawn for each player
         for i in range(0, len(player_positions)):
-            if self.__leaderboard_filter == "TOTAL_TIME":
-                self.__leaderboard_filter = "TIME"
             pos = f"{str(i+1)}.{"":3}"
-            string_pos_name = f"{player_positions[i][0]:6}"
-            string_result = f"{self.__leaderboard_filter} : {player_positions[i][1]:6}"
+            string_pos_name = f"{player_positions[i][0]:8}"
+            if not self.__leaderboard_filter == 'Time':
+                string_result = f"{self.__leaderboard_filter} : {player_positions[i][1]:6}"
+            else:
+                string_result = f"{self.__leaderboard_filter} : {str(player_positions[i][1]//60).zfill(2):1}:{str(player_positions[i][1] % 60).zfill(2):1}"
+                
+
             leader_board.append((pos, string_pos_name, string_result))
 
-        if self.__leaderboard_filter == "TIME": self.__leaderboard_filter = "TOTAL_TIME"
+
         self.__draw_leaderboard(player_positions, leader_board, SCREEN_WIDTH // 2, 125)
 
 
@@ -677,10 +713,10 @@ class MainMenu():
 
         c = conn.cursor()
 
-        c.execute(f"""SELECT WALLET.coins, PLAYER_SKINS.COINID, PLAYER_SKINS.SKINID
-                FROM PLAYER_SKINS INNER JOIN WALLET
-                ON PLAYER_SKINS.COINID == WALLET.COINID
-                WHERE PLAYER_SKINS.Username = '{username}'""")
+        c.execute(f"""SELECT Player_Skins.Coins, Users.AccountID
+                FROM Player_Skins INNER JOIN Users
+                ON Users.AccountID == Player_Skins.AccountID
+                WHERE Users.Username = '{username}'""")
 
         return c.fetchone()
 
@@ -689,14 +725,15 @@ class MainMenu():
     def __buy_menu(self, username):
         """Allows a user to purchase skins with there coins """
 
-        screen.fill(BLUE) #Hides laggyness
+
+        screen.fill(BLUE) #Hides lags due to text 
 
         if self.__back.draw(screen):
             self.__menu_choice = "skins"
 
         conn = sqlite3.connect("database/GoGolfDB.db")
         c = conn.cursor()
-        coinid = self.__user_skin_info(conn, username)
+        AccountID = self.__user_skin_info(conn, username)
 
 
         x = 400
@@ -709,7 +746,7 @@ class MainMenu():
             x+= 300
             count += 1
 
-            #Resets coloums
+            #next rows
             if count > 2:
                 x = 400
                 y+= 150
@@ -717,25 +754,30 @@ class MainMenu():
 
             self.__prices_text.draw_text(screen)
 
+            #Checks if pressed
             if self.__skin_buttons[button_index].draw(screen):
-                c.execute(f"""SELECT {golf_names[button_index]}
-                FROM SKINS
-                WHERE SKINID IS {coinid[2]}""")
+                c.execute(f"""SELECT {golf_names[button_index].capitalize()}
+                FROM Skins
+                WHERE AccountID IS {AccountID[1]}""")
                 skinid = c.fetchone()
                 skinid = skinid[0]
 
-                if (coinid[0] - (button_index*82)) > 0 and skinid == 0:
-                    c.execute(f"""UPDATE WALLET
-                        SET coins = {coinid[0] - (button_index*82)}
-                        WHERE COINID = {coinid[1]}""")
+                #Checks if player has enough funds to buy it or already owns it
+                if (AccountID[0] - (button_index*82)) > 0 and skinid == 0:
+
+                    #Pays for skins
+                    c.execute(f"""UPDATE Player_Skins
+                        SET Coins = {AccountID[0] - (button_index*82)}
+                        WHERE AccountID = {AccountID[1]}""")
                     conn.commit()
 
-                    c.execute(f"""UPDATE SKINS 
+                    #Allows the player to select the skin now
+                    c.execute(f"""UPDATE Skins 
                     SET {golf_names[button_index]} = 1
-                    WHERE SKINID = {coinid[2]}""")
+                    WHERE AccountID = {AccountID[1]}""")
                     conn.commit()
 
-            self.__wallet_text.set_all(f"Coins: {coinid[0]:5}", BLACK, P2, 15, SCREEN_WIDTH - 135, 20)
+            self.__wallet_text.set_all(f"Coins: {AccountID[0]:5}", BLACK, P2, 15, SCREEN_WIDTH - 135, 20)
             self.__wallet_text.draw_text(screen)
         conn.close()
  
@@ -753,10 +795,11 @@ class MainMenu():
         c = conn.cursor()
 
         #Selects all data in SKINS table for that player
-        c.execute(f"""SELECT SKINS.*
-                FROM PLAYER_SKINS INNER JOIN SKINS
-                ON PLAYER_SKINS.SKINID == SKINS.SKINID
-                WHERE PLAYER_SKINS.Username = '{username}'
+        c.execute(f"""SELECT Skins.*
+            FROM Player_Skins
+            INNER JOIN Skins ON Player_Skins.AccountID = Skins.AccountID
+            INNER JOIN Users ON Users.AccountID = Player_Skins.AccountID
+            WHERE Users.Username = '{username}'
          """)
         skins_owned = c.fetchone()
 
@@ -768,10 +811,6 @@ class MainMenu():
 
         conn.commit()
         conn.close()
-
-        
-        
-
 
         
     def main_menu(self, logo, username):

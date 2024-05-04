@@ -530,12 +530,6 @@ class Text:
 
 
 
-
-
-
-
-
-
 if __name__ == "__main__":
     LOGGER.info('Application Started')
     level_editor = LevelEditor()

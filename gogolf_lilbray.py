@@ -57,17 +57,18 @@ class Button():
         self.hold = False
 
     def brighten_image(self):
-        # Convert image to a copy
+        """Brightens Image of the button """
+
         image_copy = self.image.copy()
         brightness_factor = 1.5
 
-        # Iterate through pixels
+        #Iterate through pixels
         for x in range(image_copy.get_width()):
             for y in range(image_copy.get_height()):
-                # Get the color of the pixel
+                #Get the color of the pixel
                 colour = image_copy.get_at((x, y))
 
-                # Brighten RGB channels while leaving alpha channel unchanged
+                #Brighten RGB channels while leaving alpha channel unchanged
                 new_colour = (
                     min(int(colour.r * brightness_factor), 255),
                     min(int(colour.g * brightness_factor), 255),
@@ -75,7 +76,6 @@ class Button():
                     colour.a
                 )
 
-                # Set the new color to the pixel
                 image_copy.set_at((x, y), new_colour)
 
         return image_copy
@@ -287,7 +287,7 @@ def xor_cipher(value, xor_key):
     for byte in value:
         encrypted_byte = ""
         for bit_index in range(len(byte)):
-            # Perform XOR operation on each bit
+            #Perform XOR operation on each bit
             if byte[bit_index] == xor_key[bit_index]:
                 encrypted_byte += "0"
                 
@@ -307,7 +307,8 @@ def xor_cipher_DE(value, xor_key):
 
 
 def encrypter(password):
-    """Encrypts data using xor key and ceaser cipher """
+    """Encrypts data using xor key and ceaser cipher (any mention of ascii is 
+    incorrect, as values are unicode)."""
 
     ascii_password = [ord(letter) for letter in password] #Changes it to ascii
 

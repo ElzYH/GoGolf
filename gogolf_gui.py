@@ -7,7 +7,8 @@ import gogolf_lilbray
 import sqlite3
 from random import randint
 import numpy as np
-
+import pandas as pd
+import openpyxl 
 
 #pygame.init()
 
@@ -21,7 +22,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH,SCREEN_HEIGHT))
 
 #FPS
 clock = pygame.time.Clock()
-FPS = 100
+FPS = 60 #100
 
 pygame.display.set_caption("Go Golf")
 #icon = pygame.image.load('Assets/uno_icon.ico')
@@ -69,18 +70,19 @@ class GoGolf():
         self.__world = World()
         self.__player_text = gogolf_lilbray.Text()
         self.__count = -10  #Offset
-        self.__random = random
+        self.__random = random #If the game should select levels at random
         self.__world_queue = self.__create_world_queue(level)
-        self.__skin_of_golfball = BALL_SKIN
+        self.__skin_of_golfball = BALL_SKIN #Colour of ball
+        self.ticks = ticks_data = [] #Test FPS by addding all recored Frame rates to list
 
     def __create_world_queue(self, level):
         """Creates a Queue that hold each level"""
         
-
-        worlds = gogolf_lilbray.queue(level)
+        worlds = gogolf_lilbray.queue(level) #Holds a queue of each level loaded
         for i in range(level):
             
             if self.__random:
+                #Picks a random level
                 pickle_in = open(f'Levels/level{randint(1, 7)}_data', 'rb')
 
             else:
@@ -134,15 +136,17 @@ class GoGolf():
         conn = sqlite3.connect("database/GoGolfDB.db")
         c = conn.cursor()
 
-        c.execute(f"""SELECT WALLET.coins, PLAYER_SKINS.COINID 
-        FROM PLAYER_SKINS INNER JOIN WALLET
-        ON PLAYER_SKINS.COINID == WALLET.COINID
-        WHERE PLAYER_SKINS.Username = '{self.__current_player.get_username()}'""")
-        coinid = c.fetchone()
+        #Finds the amount of coins and the AccountID for that user
+        c.execute(f"""SELECT Player_Skins.Coins, Player_Skins.AccountID 
+        FROM Player_Skins INNER JOIN Users
+        ON Player_Skins.AccountID == Users.AccountID
+        WHERE Users.Username = '{self.__current_player.get_username()}'""")
+        AccountID = c.fetchone()
 
-        c.execute(f"""UPDATE WALLET
-              SET coins = {coinid[0] + (16* value)}
-              WHERE COINID = {coinid[1]}""")
+        #Updates the amount of coins for that account id
+        c.execute(f"""UPDATE Player_Skins
+              SET Coins = {AccountID[0] + (16* value)}
+              WHERE AccountID = {AccountID[1]}""")
 
         conn.commit()
         conn.close()
@@ -155,11 +159,14 @@ class GoGolf():
 
         conn = sqlite3.connect("database/GoGolfDB.db")
         c = conn.cursor()
-        c.execute(f"SELECT HOLE{level}ID FROM HOLE{level}NUMBER WHERE Username = '{self.__current_player.get_username()}'")
-        HOLEID = c.fetchone()
-        HOLEID = HOLEID[0]
-        c.execute(f"""INSERT INTO HOLES{level} (HOLES{level}ID, SCORE, STROKES, TOTAL_TIME)
-        VALUES ('{HOLEID}','{self.__current_player.get_total_score()}', '{self.__current_player.get_total_stokes()}',
+
+        #Finds the UserID
+        c.execute(f"SELECT UserID FROM Users WHERE Username = '{self.__current_player.get_username()}'")
+        UserID = c.fetchone()
+
+        #Inserts Data to the game DB
+        c.execute(f"""INSERT INTO Holes{level} (UserID, Score, Strokes, Time)
+        VALUES ('{UserID[0]}','{self.__current_player.get_total_score()}', '{self.__current_player.get_total_stokes()}',
         '{self.__current_player.get_total_time()}')""")
 
         conn.commit()
@@ -172,10 +179,13 @@ class GoGolf():
 
         if self.__world.level_completed():
             self.__prepare_next_level()
+
+            #Checks if the current level exceeds the amount of levels for the gamemode
             if not self.__currentlevel.get_level() > level:
                 self.LoadWorld()
                 self.__change_level()
             else:
+                #Game does not save random gamemode results
                 if not self.__random:
                     self.__save_game_records(level)
                 self.__coin_update(level)
@@ -184,11 +194,15 @@ class GoGolf():
 
         
     def __scoreboard(self):
-        self.__currentlevel.set_scroll_background(2000)
+        """Displays end of game results """
+
+        self.__currentlevel.set_scroll_background(2000) #Still loaded on the level however far away from the level platforms
         time = 5
         count = 0
         x_pos = -300
         game_result = gogolf_lilbray.Text()
+
+        #Time Limit For Scoreboard
         while time < 15:
             count += 1
             if count > clock.get_fps():
@@ -199,6 +213,7 @@ class GoGolf():
             self.__currentlevel.create_background()
             self.__currentlevel.set_scroll_background(self.__currentlevel.get_scroll_background() + 5)
 
+            #Draws and moves texts accross the screen
             x_pos +=2
             game_result.set_all(f"Score: {self.__current_player.get_total_score()}", "#ff8500", P2, 30, x_pos, 200)
             game_result.draw_text(screen)
@@ -217,6 +232,7 @@ class GoGolf():
         #Load first level
         self.LoadWorld()
         self.__world.proccess_data(self.__currentlevel.get_world_data(), self.__currentlevel.get_block_list(), self.__current_player.get_golfball())
+        #Sets spawn location
         self.__current_player.get_golfball().set_spawn_location(self.__world.get_spawn_location())
         
         while self.__game_running:
@@ -225,27 +241,31 @@ class GoGolf():
             self.__is_level_completed(level)
             self.__currentlevel.create_background()
 
+            #Before the player sets up the shot
             if self.__currentlevel.get_control_backgorund():
 
-                self.level_controls()
+                self.level_controls() #Can control the camera
                 self.__current_player.get_golfball().display_ball()
                 self.__world.draw(self.__distance_moved)
                 if not self.__currentlevel.get_control_backgorund():
-                    self.set_camera_pos()
+                    self.set_camera_pos() 
                     
-
+            #Player wants to shoot
             else:
                 self.__world.draw(self.__distance_moved)
                 self.player_can_shoot(self.__current_player)
                 self.__current_player.get_golfball().display_ball()
                 self.__player_text.draw_text(screen)
 
-                if self.__current_player.get_golfball().get_stop():
+                #If the player does not want to take the shot anymore
+                if self.__current_player.get_golfball().get_stop(): #Checks the player wants to stop wanting to shoot
                     self.__current_player.get_golfball().set_stop(False)
-                    self.__currentlevel.set_control_background(True)
+
+                    #Activates the control of the camera again
+                    self.__currentlevel.set_control_background(True) 
                     self.__current_player.get_golfball().set_clicked(False)
 
-
+            #If the player shot
             if  self.__current_player.get_golfball().get_clicked():
                 self.__current_player.get_golfball().display_ball()
                 self.__world.draw(self.__distance_moved)
@@ -262,14 +282,31 @@ class GoGolf():
         for event in events:
             if event.type == pygame.QUIT:
                 LOGGER.info("Quit Application")
+
+                #temp #Test FPS
+                data = {'Ticks': ticks_data}
+                df = pd.DataFrame(data, index=range(len(self.ticks)))  # Specify index as a range
+                df.to_excel('ticks_data.xlsx', index=False)
+                #Test FPS
+
+
                 sys.exit()
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
+
+                    #temp #Test FPS
+                    data = {'Ticks': self.ticks}
+                    df = pd.DataFrame(data, index=range(len(self.ticks)))  #Specify index as a range
+                    df.to_excel('ticks_data.xlsx', index=False)
+                    #Test FPS
+
                     self.__game_running = False
 
         pygame.display.update()
         clock.tick(FPS)
+        self.ticks.append(clock.get_fps()) #Test FPS
+
 
 
 
@@ -281,6 +318,7 @@ class GoGolf():
         speed_movement = player_ball.get_x_velocityofball()//115 #120
         self.__muitplier = 2.7
         
+        #Forwards movement
         if ball_postion[0] > self.__currentlevel.get_threshold_left() and self.__current_player.get_golfball().get_direction() == 1:               
 
             offset_x = self.__muitplier * speed_movement
@@ -288,7 +326,9 @@ class GoGolf():
             player_ball.update_ball_to_right(offset_x)
             self.__distance_moved -= offset_x
 
+        #Backwards movement
         elif ball_postion[0] < self.__currentlevel.get_threshold_right() and self.__current_player.get_golfball().get_direction() == -1:
+
             offset_x = self.__muitplier * speed_movement
             self.__currentlevel.update_scroll_right(offset_x)
             player_ball.update_ball_to_right(offset_x)
@@ -304,19 +344,18 @@ class GoGolf():
 
         LOGGER.info(f"golfball x pos before {golfball_x_pos} ")
         LOGGER.info(f"Scroll Before {self.__currentlevel.get_scroll_background()}")
-        #print(f"distance {self.__distance_moved}")
 
-        # Calculate the offset to center the golf ball on the screen
+        #Calculate the offset to center the golf ball on the screen
         offset_x = -(golfball.get_postion_of_ball()[0] - SCREEN_WIDTH // 2) + self.__distance_moved 
         offset_y = golfball.get_postion_of_ball()[1]
 
         LOGGER.info(f"Distance camera from ball x of camera is {self.__distance_moved} ")
         LOGGER.info(f"Offset x of camera is {offset_x} ")
 
-        # Center the golf ball on the screen
+        #Center the golf ball on the screen
         golfball.set_ball_postion(SCREEN_WIDTH//2 , offset_y)
         
-        # Update the background scroll to center the camera on the golf ball
+        #Update the background scroll to center the camera on the golf ball
         self.__currentlevel.set_scroll_background(offset_x)
 
         self.__distance_moved = (offset_x)
@@ -332,6 +371,7 @@ class GoGolf():
         #If player wants to set up a new shot
         if not self.__currentlevel.get_control_backgorund():
 
+        
             if pygame.mouse.get_pressed()[0] and not player_ball.get_clicked():
                 self.__currentlevel.set_control_background(True)
                 
@@ -421,16 +461,24 @@ class World():
                     img_rect.x = x * TILE_SIZE
                     img_rect.y = y * TILE_SIZE
                     tile_data = (img, img_rect)
+
+                    #Normal Block
                     if block <= 7 or block >= 12 and block <= 17:
                         tile_data = Tile(img, img_rect, x, y, "obstacle")
                         self.obstacle_list.append(tile_data)
+                    
+                    #Water Block
                     elif block >= 8 and block <= 11:
                         tile_data = Water(img, img_rect, x, y, "water")
                         self.obstacle_list.append(tile_data)
+
+                    #Goal Block
                     elif block >= 18 and block <= 19:
                         tile_data = Goal(img, img_rect, x, y, "goal")
                         self.obstacle_list.append(tile_data)
                         self.__goals_list.append(tile_data)
+
+                    #Golfball Postion
                     elif block == 20:
                         golfball.set_ball_postion(x*TILE_SIZE, y*TILE_SIZE + 28)
                         self.__ball_spawn_location = (x*TILE_SIZE, y*TILE_SIZE + 28)
@@ -439,11 +487,14 @@ class World():
     def draw(self, distance_moved):
         """Draws game tile """
 
-        x_coordinates = np.array([block.get_rect().x // TILE_SIZE for block in self.obstacle_list])
+        #Turns the level block/tile location back to pygame coords in numpy array
+        x_coordinates = np.array([block.get_rect().x // TILE_SIZE for block in self.obstacle_list]) 
 
+        #Checks for blocks that range in coords that would be dispalyed on screen at that time 
         mask = (x_coordinates * TILE_SIZE + distance_moved >= -TILE_SIZE) & (x_coordinates * TILE_SIZE + distance_moved <= SCREEN_WIDTH + TILE_SIZE)
         visible_blocks = np.array(self.obstacle_list)[mask]
 
+        #Renders the visbale blocks
         for block in visible_blocks:
             temp = block.get_rect().x
             screen.blit(block.get_img(), (temp + distance_moved, block.get_rect().y))
@@ -454,12 +505,13 @@ class World():
     def level_completed(self):
         """Checks if all goals have been hit"""
 
-        holes = 0
+        holes = 0 #Holes starts at zero because every level should have one or more holes
         for goal in self.__goals_list:
             if not goal.get_goal_active():
-                holes += 1
+                holes += 1 #Adds everyhole that been entered 
+
         if holes == len(self.__goals_list):
-            return True
+            return True #If the holes enteted is same amount as goals then the level is completed
         return False
 
                 
@@ -581,12 +633,12 @@ class Player():
     def score_calculator(self, amount_of_goals):
         """Calculates score"""
 
-        starting_score = amount_of_goals * 1000
+        starting_score = amount_of_goals * 1000 #Starting Score
         LOGGER.info(f"starting score: {starting_score}")
-        divder = self.__divider()  # Replace 1 with the default value
+        divder = self.__divider()  #Divider
         LOGGER.info(f"divider: {divder} and strokes: {self.__strokes}")
         LOGGER.info(f"Time {self.__time} and score {(round(starting_score / (self.__time / divder)))*10}")
-        self.__totalscore += round(((starting_score / (self.__time / divder))*100))
+        self.__totalscore += round(((starting_score / (self.__time / divder))*100)) #Algorithm
         LOGGER.info(f"Total score: {self.__totalscore}")
         
         
@@ -647,18 +699,19 @@ class Level():
         LOGGER.info("Create List Of Image Tiles")
         tile_list = []
         for x in range(TILE_TYPES):
-            img = pygame.image.load(f'Assests/tile/{x}.png')
-            img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
-            tile_list.append(img)
+            img = pygame.image.load(f'Assests/tile/{x}.png') #Loads the image
+            img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE)) #Scales it
+            tile_list.append(img) #Add to list
         return tile_list
 
     def draw_background(self):
         """Draw the background for the game """
 
+        #Draw all three layers of images
         for i in range(0, self.__tiles):
             screen.blit(background_1, (((i * self.__backgrond_widith) + self.__backgroundscroll) , 0))
             screen.blit(background_2, (((i * self.__backgrond_widith) + self.__backgroundscroll), 0))
-            screen.blit(background_3, (((i * self.__backgrond_widith) + self.__backgroundscroll), 0))
+            screen.blit(background_3, (((i * self.__backgrond_widith) + self.__backgroundscroll), 0)) 
 
     def update_backgorund(self):
         """Add a new tile in either vertical direction"""
@@ -768,15 +821,22 @@ class Golf_Ball():
         """Calculates the power/angle of the user shot based on distance from distance and the user angle postion from the ball.
         In additon also sets the direction the ball intially travelling"""
 
+        #Difference between mouse pos and ball pos
         dx = mouse_position[0] - self.__BallPostion[0]
         dy = mouse_position[1] - self.__BallPostion[1]
-        self.__BallSpeed = sqrt(dx**2 + dy**2) * 2
-        self.__BallAngle = atan2(dy, dx)
+
+        #Finds the distance
+        self.__BallSpeed = sqrt(dx**2 + dy**2) * 1.5
+
+        #Finds the angle
+        self.__BallAngle = atan2(dy, dx) #Radians
         self.__BallSpeed = self.__power_increaser()*self.__BallSpeed 
         
+        #Cap for distance 
         if self.__BallSpeed > 1000:
             self.__BallSpeed = 1000
 
+        #Checks for intial direction
         if degrees(self.__BallAngle) < 90 and degrees(self.__BallAngle) > -90:
             self.__direction = -1
 
@@ -856,9 +916,11 @@ class Golf_Ball():
         if self.__BallPostion[1] > SCREEN_HEIGHT + 50 or (tile.get_block_type() == "water" and tile.get_rect().colliderect(-distance + self.__GOLFBALL_rect.x , 
         self.__GOLFBALL_rect.y + (self.__VelocityOfBall[1]*update_step), self.__GOLFBALL_image.get_width(), self.__GOLFBALL_image.get_height())):
 
-            
+            #Kill ball velocity
             self.__VelocityOfBall[0] = 0
             self.__VelocityOfBall[1] = 0
+
+            #Set ball postion
             if not self.__ball_pre_pos == (0,0):
                 self.set_ball_postion(self.__ball_pre_pos[0] + distance, self.__ball_pre_pos[1])
             else:
@@ -896,7 +958,7 @@ class Golf_Ball():
         if pygame.mouse.get_pressed()[2] and self.__clicked == False:
             self.__clicked = True
             LOGGER.info("Player set his aim")
-            LOGGER.info(f" Mouse postions: {mouse_position}")
+            LOGGER.info(f"Mouse postions: {mouse_position}")
             LOGGER.info(f"Direction: {self.__direction}")
             LOGGER.info(f"Ball postion: {self.__BallPostion}")
             LOGGER.info(f"Ball Speed: {self.__BallSpeed} Ball Angle: {degrees(self.__BallAngle)}")
@@ -911,27 +973,27 @@ class Golf_Ball():
         YVelocity = -self.__BallSpeed*sin(self.__BallAngle)
         self.__VelocityOfBall = [XVelocity, YVelocity]
         
-        
     
     def update_flight(self, update_step):
         """Update the ball flight path"""
 
-        # Acceleration Calculation
+        #Calculation forr flight [x,y]
         gravity_acceleration = np.array([0, self.__GRAVITY])
-        air_resistance_acceleration = -self.__AirResistance * np.array(self.__VelocityOfBall)
-        acceleration = gravity_acceleration + air_resistance_acceleration
+        air_resistance_acceleration = -self.__AirResistance * np.array(self.__VelocityOfBall) #Apply AirResistance to the x, y velcoity
+        acceleration = gravity_acceleration + air_resistance_acceleration #Finds total accleration
 
-        # Updates velocity using NumPy array operations
+        #Updates velocity 
         self.__VelocityOfBall += acceleration / self.__BALL_MASS * update_step
+    
 
-        # Updates Ball position using NumPy array operations
+        #Updates Ball position 
         self.__BallPostion += self.__VelocityOfBall * update_step
 
-        # Updates Ball rectangle position
+        #Updates Ball rectangle position
         self.__GOLFBALL_rect.x, self.__GOLFBALL_rect.y = self.__BallPostion.astype(int)
 
     def trajecotry(self, obstacles, distance, player):
-        update_step = 0.028
+        update_step = 0.028 #Slows the ball movemnet
 
         if self.__clicked:
             self.update_flight(update_step)
@@ -1003,11 +1065,4 @@ class Golf_Ball():
         self.__GOLFBALL_rect.x = x
         self.__GOLFBALL_rect.y = y
 
-
-        
-
-def gameloop():
-    game = GoGolf("Erol")
-    game.PlayGame()
-        
 
