@@ -44,8 +44,8 @@ current_directory = os.getcwd()
 print(current_directory)
 
 background_img = pygame.image.load('bg.png').convert_alpha()
-save_img = pygame.image.load(os.path.join(current_directory, 'Assests','save.png')).convert_alpha()
-load_img = pygame.image.load(os.path.join(current_directory, 'Assests','load.png')) .convert_alpha()
+save_img = pygame.image.load(os.path.join(current_directory, 'Assets','save.png')).convert_alpha()
+load_img = pygame.image.load(os.path.join(current_directory, 'Assets','load.png')) .convert_alpha()
 
 #Fonts
 WII_FONT = os.path.join(current_directory,"Assets", "Fonts", "AOTFShinGoProMedium.otf")
@@ -326,7 +326,7 @@ class Level():
         LOGGER.info("Create List Of Image Tiles")
         tile_list = []
         for x in range(TILE_TYPES):
-            img = pygame.image.load(os.path.join(current_directory, 'Assests', 'tile',f'{x}.png')) 
+            img = pygame.image.load(os.path.join(current_directory, 'Assets', 'tile',f'{x}.png')) 
             img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
             tile_list.append(img)
 

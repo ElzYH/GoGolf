@@ -32,7 +32,7 @@ pygame.key.set_repeat(0,0)
 
 #Load Images
 
-GOLFBALL_IMG = pygame.image.load('Assests/white_ball.png')
+GOLFBALL_IMG = pygame.image.load('Assets/white_ball.png')
 
 
 #Image Widiths and Heights
@@ -51,8 +51,8 @@ WHITE = "#F5FEFD"
 ORANGE = "#edc9af"
 
 #Fonts
-WII_FONT = "Assests/Fonts/AOTFShinGoProMedium.otf"
-P2 = "Assests/Fonts/Retro Gaming.ttf"
+WII_FONT = "Assets/Fonts/AOTFShinGoProMedium.otf"
+P2 = "Assets/Fonts/Retro Gaming.ttf"
 
 #Grid
 ROWS = 16
@@ -560,7 +560,7 @@ class Water(Tile):
 class Goal(Tile):
     def __init__(self, img, img_rect, x, y, img_type):
         super().__init__(img, img_rect, x, y, img_type)
-        self._goal_post = pygame.image.load("Assests/tile/19.png").convert_alpha()
+        self._goal_post = pygame.image.load("Assets/tile/19.png").convert_alpha()
         self._goal_post = pygame.transform.scale(self._goal_post, (TILE_SIZE, TILE_SIZE))
         self.__goal_active = True
 
@@ -698,7 +698,7 @@ class Level():
         LOGGER.info("Create List Of Image Tiles")
         tile_list = []
         for x in range(TILE_TYPES):
-            img = pygame.image.load(f'Assests/tile/{x}.png') #Loads the image
+            img = pygame.image.load(f'Assets/tile/{x}.png') #Loads the image
             img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE)) #Scales it
             tile_list.append(img) #Add to list
         return tile_list

@@ -15,38 +15,38 @@ LOGGER = logging.getLogger(f"{__name__}")
 clock = pygame.time.Clock()
 FPS = 100
 
-icon = pygame.image.load('Assests/logo1.ico')
+icon = pygame.image.load('Assets/logo1.ico')
 pygame.display.set_icon(icon)
 
 #Image Widiths and Heights
 background_1 = pygame.image.load('Background_Img/1.png').convert_alpha()
 background_2 = pygame.image.load('Background_Img/2.png').convert_alpha()
 background_3 = pygame.image.load('Background_Img/4.png').convert_alpha()
-leaderboard_wall = pygame.image.load('Assests/leaderboard_wall.png')
+leaderboard_wall = pygame.image.load('Assets/leaderboard_wall.png')
 
-logo = pygame.image.load('Assests/logo1.png').convert_alpha()
+logo = pygame.image.load('Assets/logo1.png').convert_alpha()
 
-play_button = pygame.image.load('Assests/play.png')
-lb_buttons = pygame.image.load('Assests/leaderboard.png')
-quit_buttons = pygame.image.load('Assests/quit.png')
-back_buttons = pygame.image.load('Assests/back.png')
-three_hole_button = pygame.image.load('Assests/three_hole.png')
-five_hole_button = pygame.image.load('Assests/five_hole.png')
-score_button = pygame.image.load('Assests/score.png')
-time_button = pygame.image.load('Assests/time.png')
-strokes_button = pygame.image.load('Assests/strokes.png')
-random_button = pygame.image.load('Assests/random.png')
-change_user_button =  pygame.image.load('Assests/change_user.png')
-skins_button =  pygame.image.load('Assests/skins.png')
-buy_skins_button = pygame.image.load('Assests/buy_skins.png')
-select_skins_button = pygame.image.load('Assests/select_skin.png')
+play_button = pygame.image.load('Assets/play.png')
+lb_buttons = pygame.image.load('Assets/leaderboard.png')
+quit_buttons = pygame.image.load('Assets/quit.png')
+back_buttons = pygame.image.load('Assets/back.png')
+three_hole_button = pygame.image.load('Assets/three_hole.png')
+five_hole_button = pygame.image.load('Assets/five_hole.png')
+score_button = pygame.image.load('Assets/score.png')
+time_button = pygame.image.load('Assets/time.png')
+strokes_button = pygame.image.load('Assets/strokes.png')
+random_button = pygame.image.load('Assets/random.png')
+change_user_button =  pygame.image.load('Assets/change_user.png')
+skins_button =  pygame.image.load('Assets/skins.png')
+buy_skins_button = pygame.image.load('Assets/buy_skins.png')
+select_skins_button = pygame.image.load('Assets/select_skin.png')
 
 golf_names = ["white","pink","blue","orange","red","gold","black"]
 
-golf_skins = [pygame.image.load(f'Assests/{skin}.png') for skin  in golf_names]
+golf_skins = [pygame.image.load(f'Assets/{skin}.png') for skin  in golf_names]
 
-sign_up_button = pygame.image.load('Assests/sign_up.png')
-login_button = pygame.image.load('Assests/login.png')
+sign_up_button = pygame.image.load('Assets/sign_up.png')
+login_button = pygame.image.load('Assets/login.png')
 
 #Colours
 GREY = (245, 244, 243)
@@ -61,9 +61,9 @@ bg_w = background_1.get_width()
 bg_h = background_1.get_height()
 
 #Fonts
-WII_FONT = "Assests/Fonts/AOTFShinGoProMedium.otf"
-PIXEL_FONT = "Assests/Fonts/04B_30__.TTF"
-P2 = "Assests/Fonts/Retro Gaming.ttf"
+WII_FONT = "Assets/Fonts/AOTFShinGoProMedium.otf"
+PIXEL_FONT = "Assets/Fonts/04B_30__.TTF"
+P2 = "Assets/Fonts/Retro Gaming.ttf"
 
 #Display Widths and Heights
 SCREEN_HEIGHT = 768 
@@ -524,7 +524,7 @@ class MainMenu():
     def __GOLFBALL_SELECT(self, value):
         """Selects the correct image of the GOlFBAll image"""
 
-        return pygame.image.load(f'Assests/{value}_ball.png')
+        return pygame.image.load(f'Assets/{value}_ball.png')
     
     def __holes(self, username):
         """Game Select for what type for game the user want to play """
