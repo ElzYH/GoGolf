@@ -317,10 +317,10 @@ class User():
 
         while True:
             try:
-                c.execute(f"""
+                c.execute("""
                 SELECT AccountID
                 FROM Users
-                WHERE AccountID = {total}""")
+                WHERE AccountID = ?""", (total,))
                 existing_account = c.fetchone()
                 if existing_account:
                     #AccountID already exists increment total 
@@ -346,13 +346,13 @@ class User():
 
         # Insert into SKINS table
         c.execute(f"""INSERT INTO Skins (AccountID) 
-                    VALUES ({accountID})""")
+                    VALUES (?)""", (accountID,))
         last_inserted_id.append(c.lastrowid)
 
 
         # Insert into PLAYER_SKINS table
         c.execute(f"""INSERT INTO Player_Skins (AccountID) 
-                    VALUES ({accountID})""")
+                    VALUES (?)""", (accountID,))
         
 
     def __account_maker(self):
@@ -371,7 +371,7 @@ class User():
                 self.__menu_choice = ""
                 return
         try:
-            username_sql = c.execute(f'SELECT Username FROM Users WHERE Username IS "{self.__username}"')
+            username_sql = c.execute(f'SELECT Username FROM Users WHERE Username = ?', (self.__username,))
             username_sql = str("".join(c.fetchone()))
         except TypeError: 
             pass #Username not in the database
@@ -432,7 +432,7 @@ class User():
         an error flag will shown on the screen """
 
         c = conn.cursor()
-        username_sql = c.execute(f'SELECT Username FROM Users WHERE Username IS "{self.__username}"')
+        username_sql = c.execute(f'SELECT Username FROM Users WHERE Username IS WHERE Username = ?', (self.__username,))
         
         try:
             username_sql =  str("".join(c.fetchone())).lower()
@@ -665,8 +665,10 @@ class MainMenu():
 
         order = self.__ASC_DSC()
 
-        c = conn.cursor()
+        if self.__leaderboard_hole not in (3, 5) or self.__leaderboard_filter not in ("Score", "Strokes", "Time"):
+            return
 
+        c = conn.cursor()
 
         c.execute(f"""SELECT Users.Username, Holes{self.__leaderboard_hole}.{self.__leaderboard_filter}
         FROM Holes{self.__leaderboard_hole} INNER JOIN Users
@@ -716,7 +718,7 @@ class MainMenu():
         c.execute(f"""SELECT Player_Skins.Coins, Users.AccountID
                 FROM Player_Skins INNER JOIN Users
                 ON Users.AccountID == Player_Skins.AccountID
-                WHERE Users.Username = '{username}'""")
+                WHERE Users.Username = ?""", username,)
 
         return c.fetchone()
 
@@ -758,7 +760,7 @@ class MainMenu():
             if self.__skin_buttons[button_index].draw(screen):
                 c.execute(f"""SELECT {golf_names[button_index].capitalize()}
                 FROM Skins
-                WHERE AccountID IS {AccountID[1]}""")
+                WHERE AccountID = ?""", (AccountID[1],))
                 skinid = c.fetchone()
                 skinid = skinid[0]
 
@@ -767,14 +769,15 @@ class MainMenu():
 
                     #Pays for skins
                     c.execute(f"""UPDATE Player_Skins
-                        SET Coins = {AccountID[0] - (button_index*82)}
-                        WHERE AccountID = {AccountID[1]}""")
+                        SET Coins = ? 
+                        WHERE AccountID = ?""",
+                              (AccountID[0] - button_index*82, AccountID[1]))
                     conn.commit()
 
                     #Allows the player to select the skin now
                     c.execute(f"""UPDATE Skins 
                     SET {golf_names[button_index]} = 1
-                    WHERE AccountID = {AccountID[1]}""")
+                    WHERE AccountID = ?""", (AccountID[1],))
                     conn.commit()
 
             self.__wallet_text.set_all(f"Coins: {AccountID[0]:5}", BLACK, P2, 15, SCREEN_WIDTH - 135, 20)
@@ -799,8 +802,7 @@ class MainMenu():
             FROM Player_Skins
             INNER JOIN Skins ON Player_Skins.AccountID = Skins.AccountID
             INNER JOIN Users ON Users.AccountID = Player_Skins.AccountID
-            WHERE Users.Username = '{username}'
-         """)
+            WHERE Users.Username = ?""", username,)
         skins_owned = c.fetchone()
 
         #Draws the buttons

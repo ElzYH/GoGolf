@@ -137,16 +137,14 @@ class GoGolf():
         c = conn.cursor()
 
         #Finds the amount of coins and the AccountID for that user
-        c.execute(f"""SELECT Player_Skins.Coins, Player_Skins.AccountID 
-        FROM Player_Skins INNER JOIN Users
-        ON Player_Skins.AccountID == Users.AccountID
-        WHERE Users.Username = '{self.__current_player.get_username()}'""")
+        c.execute("""SELECT Player_Skins.Coins, Player_Skins.AccountID
+            FROM Player_Skins INNER JOIN Users
+            ON Player_Skins.AccountID = Users.AccountID
+            WHERE Users.Username = ?""", (self.__current_player.get_username(),))
         AccountID = c.fetchone()
 
-        #Updates the amount of coins for that account id
-        c.execute(f"""UPDATE Player_Skins
-              SET Coins = {AccountID[0] + (16* value)}
-              WHERE AccountID = {AccountID[1]}""")
+        c.execute("UPDATE Player_Skins SET Coins = ? WHERE AccountID = ?",
+                  (AccountID[0] + 16 * value, AccountID[1]))
 
         conn.commit()
         conn.close()
@@ -157,17 +155,23 @@ class GoGolf():
     def __save_game_records(self, level):
         """Records game results"""
 
+        if level not in (3, 5):
+            raise ValueError(f"Invalid level {level}")
+
         conn = sqlite3.connect("database/GoGolfDB.db")
         c = conn.cursor()
 
         #Finds the UserID
-        c.execute(f"SELECT UserID FROM Users WHERE Username = '{self.__current_player.get_username()}'")
+        c.execute("SELECT UserID FROM Users WHERE Username = ?",
+                  (self.__current_player.get_username(),))
         UserID = c.fetchone()
 
         #Inserts Data to the game DB
-        c.execute(f"""INSERT INTO Holes{level} (UserID, Score, Strokes, Time)
-        VALUES ('{UserID[0]}','{self.__current_player.get_total_score()}', '{self.__current_player.get_total_stokes()}',
-        '{self.__current_player.get_total_time()}')""")
+        c.execute(f"INSERT INTO Holes{level} (UserID, Score, Strokes, Time) VALUES (?, ?, ?, ?)",
+                  (UserID[0],
+                   self.__current_player.get_total_score(),
+                   self.__current_player.get_total_stokes(),
+                   self.__current_player.get_total_time()))
 
         conn.commit()
         conn.close()
