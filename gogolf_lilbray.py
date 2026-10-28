@@ -1,6 +1,8 @@
 import pygame
 import os
 import pygame_textinput
+import hashlib
+import hmac
 current_directory = os.getcwd()
 
 class Text:
@@ -333,7 +335,17 @@ def encrypter(password):
 
     return second_level
 
-    
+def hash_password(password, salt=None):
+    """Hashes a password with PBKDF2-SHA256 and a random salt"""
+    if salt is None:
+        salt = os.urandom(16)
+    hashed = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 200_000)
+    return salt.hex(), hashed.hex()
+
+def verify_password(password, salt_hex, hash_hex):
+    """Checks a typed password against the stored hash"""
+    _, new_hash = hash_password(password, bytes.fromhex(salt_hex))
+    return hmac.compare_digest(new_hash, hash_hex)
 
 
 

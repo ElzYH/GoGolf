@@ -340,18 +340,19 @@ class User():
     
         c = conn.cursor()
         accountID = self.__accountID_total(conn)
-        self.__password = gogolf_lilbray.encrypter(self.__password)
-        c.execute("INSERT INTO Users (AccountID, Username, Password) VALUES (?, ?, ?)", (accountID, self.__username.lower(), self.__password))        
+        salt, hashed = gogolf_lilbray.hash_password(self.__password)
+        c.execute("INSERT INTO Users (AccountID, Username, Password, Salt) VALUES (?, ?, ?, ?)",
+                  (accountID, self.__username.lower(), hashed, salt))
         last_inserted_id = []
 
         # Insert into SKINS table
-        c.execute(f"""INSERT INTO Skins (AccountID) 
+        c.execute("""INSERT INTO Skins (AccountID) 
                     VALUES (?)""", (accountID,))
         last_inserted_id.append(c.lastrowid)
 
 
         # Insert into PLAYER_SKINS table
-        c.execute(f"""INSERT INTO Player_Skins (AccountID) 
+        c.execute("""INSERT INTO Player_Skins (AccountID) 
                     VALUES (?)""", (accountID,))
         
 
@@ -371,7 +372,7 @@ class User():
                 self.__menu_choice = ""
                 return
         try:
-            username_sql = c.execute(f'SELECT Username FROM Users WHERE Username = ?', (self.__username,))
+            username_sql = c.execute('SELECT Username FROM Users WHERE Username = ?', (self.__username,))
             username_sql = str("".join(c.fetchone()))
         except TypeError: 
             pass #Username not in the database
@@ -427,48 +428,22 @@ class User():
 
 
 
-    def __if_username_exist(self, conn):
-        """Checks if username exist within the database, if it doesnt
-        an error flag will shown on the screen """
-
-        c = conn.cursor()
-        username_sql = c.execute(f'SELECT Username FROM Users WHERE Username IS WHERE Username = ?', (self.__username,))
-        
-        try:
-            username_sql =  str("".join(c.fetchone())).lower()
-        except TypeError:
-            self.__clear_info()
-            self.__error = "username does not exist"
-            conn.close()
-        return username_sql
-
-
     def __if_account_exist(self):
         """Check if user trying to login infomation is correct. 
         This consit of checking for user username and password"""
 
+
         conn = sqlite3.connect("database/GoGolfDB.db")
         c = conn.cursor()
-        username_sql = self.__if_username_exist(conn)
+        c.execute("SELECT Password, Salt FROM Users WHERE Username = ?", (self.__username,))
+        row = c.fetchone()  #None if username doesn't exist
+        conn.close()
 
-        #Check if Username vaild
-        if username_sql == self.__username:
-            password_sql = c.execute(f'SELECT Password FROM Users WHERE Username IS "{self.__username}"')
-            try:
-                password_sql =  str("".join(c.fetchone()))
-                self.__password = gogolf_lilbray.encrypter(self.__password)
-            except TypeError:
-                pass
+        if row and gogolf_lilbray.verify_password(self.__password, row[1], row[0]):
+            return True
 
-            #Check password valid
-            if password_sql == self.__password:
-                conn.close()
-                return True
-            else:
-                self.__clear_info()
-                conn.close()
+        self.__clear_info()
         self.__error = "username/password is not correct"
-        conn.close()     
         return False
     
     def __clear_info(self):
@@ -660,19 +635,18 @@ class MainMenu():
         """Leaderboard menu"""
 
         self.__filter_options()
-        screen.blit(leaderboard_wall, (SCREEN_WIDTH//2 - 50, 75))
-        conn = sqlite3.connect("database/GoGolfDB.db")  # Fix the path to the database
-
-        order = self.__ASC_DSC()
+        screen.blit(leaderboard_wall, (SCREEN_WIDTH // 2 - 50, 75))
 
         if self.__leaderboard_hole not in (3, 5) or self.__leaderboard_filter not in ("Score", "Strokes", "Time"):
-            return
+            return  #whitelist table/column names before 
 
+        conn = sqlite3.connect("database/GoGolfDB.db")
+        order = self.__ASC_DSC()
         c = conn.cursor()
 
         c.execute(f"""SELECT Users.Username, Holes{self.__leaderboard_hole}.{self.__leaderboard_filter}
         FROM Holes{self.__leaderboard_hole} INNER JOIN Users
-        ON  Holes{self.__leaderboard_hole}.UserID == Users.UserID
+        ON  Holes{self.__leaderboard_hole}.UserID = Users.UserID
         ORDER BY Holes{self.__leaderboard_hole}.{self.__leaderboard_filter} {order}
         """)
 
@@ -715,10 +689,10 @@ class MainMenu():
 
         c = conn.cursor()
 
-        c.execute(f"""SELECT Player_Skins.Coins, Users.AccountID
+        c.execute("""SELECT Player_Skins.Coins, Users.AccountID
                 FROM Player_Skins INNER JOIN Users
-                ON Users.AccountID == Player_Skins.AccountID
-                WHERE Users.Username = ?""", username,)
+                ON Users.AccountID = Player_Skins.AccountID
+                WHERE Users.Username = ?""", (username,))
 
         return c.fetchone()
 
@@ -768,7 +742,7 @@ class MainMenu():
                 if (AccountID[0] - (button_index*82)) > 0 and skinid == 0:
 
                     #Pays for skins
-                    c.execute(f"""UPDATE Player_Skins
+                    c.execute("""UPDATE Player_Skins
                         SET Coins = ? 
                         WHERE AccountID = ?""",
                               (AccountID[0] - button_index*82, AccountID[1]))
@@ -798,11 +772,11 @@ class MainMenu():
         c = conn.cursor()
 
         #Selects all data in SKINS table for that player
-        c.execute(f"""SELECT Skins.*
+        c.execute("""SELECT Skins.*
             FROM Player_Skins
             INNER JOIN Skins ON Player_Skins.AccountID = Skins.AccountID
             INNER JOIN Users ON Users.AccountID = Player_Skins.AccountID
-            WHERE Users.Username = ?""", username,)
+            WHERE Users.Username = ?""", (username,))
         skins_owned = c.fetchone()
 
         #Draws the buttons

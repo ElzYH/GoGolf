@@ -22,7 +22,8 @@ def create_register_table(conn):
         UserID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         AccountID INTEGER UNIQUE NOT NULL,
         Username VARCHAR(8) NOT NULL UNIQUE,
-        Password VARCHAR(8) NOT NULL
+        Password TEXT NOT NULL,
+        Salt TEXT NOT NULL
     )""")
     conn.commit()
 
