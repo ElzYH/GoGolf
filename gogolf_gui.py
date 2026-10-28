@@ -23,6 +23,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH,SCREEN_HEIGHT))
 #FPS
 clock = pygame.time.Clock()
 FPS = 60 #100
+PROFILE_FPS = False
 
 pygame.display.set_caption("Go Golf")
 #icon = pygame.image.load('Assets/uno_icon.ico')
@@ -73,7 +74,7 @@ class GoGolf():
         self.__random = random #If the game should select levels at random
         self.__world_queue = self.__create_world_queue(level)
         self.__skin_of_golfball = BALL_SKIN #Colour of ball
-        self.ticks = ticks_data = [] #Test FPS by addding all recored Frame rates to list
+        self.ticks = [] #ticks_data = frame rates recorded for FPS profiling
 
     def __create_world_queue(self, level):
         """Creates a Queue that hold each level"""
@@ -278,38 +279,29 @@ class GoGolf():
             self.__UI_playerinfo()
             self.EventHandler()
 
-        
+    def __export_fps(self):
+        """Saves recorded frame rates to Excel when profiling is on"""
+        if PROFILE_FPS:
+            pd.DataFrame({'Ticks': self.ticks}).to_excel('ticks_data.xlsx', index=False)
+
     def EventHandler(self):
         """Event Handler """
- 
+
         events = pygame.event.get()
         for event in events:
             if event.type == pygame.QUIT:
                 LOGGER.info("Quit Application")
-
-                #temp #Test FPS
-                data = {'Ticks': ticks_data}
-                df = pd.DataFrame(data, index=range(len(self.ticks)))  # Specify index as a range
-                df.to_excel('ticks_data.xlsx', index=False)
-                #Test FPS
-
-
+                self.__export_fps()
                 sys.exit()
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-
-                    #temp #Test FPS
-                    data = {'Ticks': self.ticks}
-                    df = pd.DataFrame(data, index=range(len(self.ticks)))  #Specify index as a range
-                    df.to_excel('ticks_data.xlsx', index=False)
-                    #Test FPS
-
+                    self.__export_fps()
                     self.__game_running = False
 
         pygame.display.update()
         clock.tick(FPS)
-        self.ticks.append(clock.get_fps()) #Test FPS
+        self.ticks.append(clock.get_fps())  # record frame rate for profiling
 
 
 
@@ -625,6 +617,9 @@ class Player():
 
     def new_ball(self, GOLFBALL):
         self.__playergolfball = Golf_Ball(GOLFBALL)
+
+    def add_to_total_time(self, value):
+        self.__totaltime += value
 
     def reset(self):
         """Reset strokes and time"""

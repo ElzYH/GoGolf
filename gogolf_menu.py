@@ -739,7 +739,7 @@ class MainMenu():
                 skinid = skinid[0]
 
                 #Checks if player has enough funds to buy it or already owns it
-                if (AccountID[0] - (button_index*82)) > 0 and skinid == 0:
+                if (AccountID[0] - (button_index * 82)) >= 0 and skinid == 0:
 
                     #Pays for skins
                     c.execute("""UPDATE Player_Skins

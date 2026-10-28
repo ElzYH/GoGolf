@@ -14,8 +14,6 @@ LOGGER = logging.getLogger(f"{__name__}")
 #Starting log (info can be swaped for different use cases)
 LOGGER.info(f'Application started')
 
-LOGGER.info('Application started')
-
 def create_register_table(conn):
     c = conn.cursor()
     c.execute("""CREATE TABLE Users (
@@ -79,7 +77,6 @@ def create_database():
     conn.commit()
     conn.close()
 
-    
 
 
 def check_database():

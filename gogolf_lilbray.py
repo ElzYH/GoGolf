@@ -20,9 +20,6 @@ class Text:
     def set_colour(self, value):
         self.__colour = value
 
-    def set_font(self, value, size):
-        self.__font = pygame.freetype.Font(value, size)
-
     def set_x(self, value):
         self.__x = value
 
