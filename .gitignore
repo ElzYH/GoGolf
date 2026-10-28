@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+env/
+
+# Generated at runtime
+Logs/
+database/*.db
+ticks_data.xlsx
+
+# Cython leftovers
+build/
+*.so
+
+# Editor / OS
+.vscode/
+.DS_Store
